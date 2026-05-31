@@ -549,11 +549,11 @@ function startGame(msg) {
   // На практике сервер должен слать playerIndex — пока считаем нас чёрными
 
   if (myPlayerIndex === 1) {
-    document.getElementById('p1name').textContent = 'Белые (ты)';
-    document.getElementById('p2name').textContent = 'Чёрные';
+    document.getElementById('p1name').textContent = (msg.myName || 'Белые') + ' (ты)';
+    document.getElementById('p2name').textContent = msg.opponentName || 'Чёрные';
   } else {
-    document.getElementById('p1name').textContent = 'Белые';
-    document.getElementById('p2name').textContent = 'Чёрные (ты)';
+    document.getElementById('p1name').textContent = msg.opponentName || 'Белые';
+    document.getElementById('p2name').textContent = (msg.myName || 'Чёрные') + ' (ты)';
   }
   document.getElementById('pot-label').textContent = (msg.pot || selectedStake * 2) + ' USDT';
 
