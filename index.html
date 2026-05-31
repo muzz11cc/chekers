@@ -409,7 +409,7 @@ async function init() {
   try {
     const res = await fetch(HTTP_URL + '/login', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {'Content-Type':'application/json', 'ngrok-skip-browser-warning': 'true'},
       body: JSON.stringify({ tgId: user.id, username: user.username || user.first_name })
     });
     const data = await res.json();
