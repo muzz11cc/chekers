@@ -409,7 +409,7 @@ async function init() {
   try {
     const res = await fetch(HTTP_URL + '/login', {
       method: 'POST',
-      headers: {'Content-Type':'application/json', 'ngrok-skip-browser-warning': 'true'},
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ tgId: user.id, username: user.username || user.first_name })
     });
     const data = await res.json();
@@ -516,10 +516,10 @@ function findMatch() {
 
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     connectWS(() => {
-      ws.send(JSON.stringify({ type: 'find_match' }));
+      ws.send(JSON.stringify({ type: 'find_match', stake: selectedStake }));
     });
   } else {
-    ws.send(JSON.stringify({ type: 'find_match' }));
+    ws.send(JSON.stringify({ type: 'find_match', stake: selectedStake }));
     showScreen('searching');
   }
 }
@@ -543,14 +543,19 @@ function startGame(msg) {
   // Определяем кто мы — белые (1) или чёрные (2)
   // players[0] = белые, players[1] = чёрные
   // В wsServer: [opponentId, playerId] — мы второй
-  myPlayerIndex = 2; // по умолчанию — уточним по sessionId или порядку
+  myPlayerIndex = msg.playerIndex || 2;
   // Если мы первый в очереди — мы белые
   // Простая эвристика: если наш id совпадает с тем кто нашёл матч первым
   // На практике сервер должен слать playerIndex — пока считаем нас чёрными
 
-  document.getElementById('p1name').textContent = 'Белые';
-  document.getElementById('p2name').textContent = 'Чёрные (ты)';
-  document.getElementById('pot-label').textContent = (selectedStake * 2) + ' USDT';
+  if (myPlayerIndex === 1) {
+    document.getElementById('p1name').textContent = 'Белые (ты)';
+    document.getElementById('p2name').textContent = 'Чёрные';
+  } else {
+    document.getElementById('p1name').textContent = 'Белые';
+    document.getElementById('p2name').textContent = 'Чёрные (ты)';
+  }
+  document.getElementById('pot-label').textContent = (msg.pot || selectedStake * 2) + ' USDT';
 
   board = state.board;
   currentPlayer = state.currentPlayer;
