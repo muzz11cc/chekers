@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Checkers — Stake & Play</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #0d0d0d;
+  --surface: #1a1a1a;
+  --surface2: #242424;
+  --border: #2e2e2e;
+  --accent: #c8f55a;
+  --accent-dim: rgba(200,245,90,0.12);
+  --text: #f0f0f0;
+  --muted: #888;
+  --danger: #ff4d4d;
+  --p1: #f0f0f0;
+  --p1-border: #888;
+  --p2: #c8f55a;
+  --p2-border: #8ab83a;
+  --cell-dark: #2a2a2a;
+  --cell-light: #1a1a1a;
+  --cell-selected: #4a7c1a;
+  --cell-hint: #2d5c10;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#app { max-width: 420px; margin: 0 auto; padding: 0 0 24px; }
+
+/* ─── SCREENS ─── */
+.screen { display: none; flex-direction: column; min-height: 100vh; padding: 20px 16px; }
+.screen.active { display: flex; }
+
+/* ─── LOBBY ─── */
+#lobby { gap: 0; }
+
+.logo-block { padding: 32px 0 24px; text-align: center; }
+.logo-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: var(--accent);
+}
+.logo-sub { font-size: 13px; color: var(--muted); margin-top: 6px; letter-spacing: 0.5px; }
+
+.user-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 24px;
+  border: 0.5px solid var(--border);
+}
+.user-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--accent-dim); border: 1px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace; font-size: 14px; color: var(--accent);
+}
+.user-name { font-weight: 500; font-size: 15px; }
+.user-id { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.user-bal { margin-left: auto; font-family: 'Space Mono', monospace; font-size: 14px; color: var(--accent); }
+
+.section-label {
+  font-size: 11px; letter-spacing: 1.5px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 10px; padding-left: 2px;
+}
+
+.stake-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px;
+}
+.stake-btn {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 10px; padding: 14px 8px;
+  font-family: 'Space Mono', monospace; font-size: 15px;
+  color: var(--text); cursor: pointer; text-align: center;
+  transition: all 0.15s;
+}
+.stake-btn:active { transform: scale(0.96); }
+.stake-btn.selected {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--accent);
+}
+.stake-label { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+.custom-stake {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
+}
+.custom-stake input {
+  flex: 1; background: none; border: none; outline: none;
+  font-family: 'Space Mono', monospace; font-size: 16px; color: var(--text);
+}
+.custom-stake input::placeholder { color: var(--muted); }
+.custom-stake span { font-size: 13px; color: var(--muted); }
+
+.play-btn {
+  width: 100%; padding: 18px;
+  background: var(--accent); border: none; border-radius: 14px;
+  font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700;
+  color: #0d0d0d; cursor: pointer; letter-spacing: 0.5px;
+  transition: all 0.15s; margin-top: auto;
+}
+.play-btn:active { transform: scale(0.98); opacity: 0.9; }
+.play-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ─── SEARCHING ─── */
+#searching { align-items: center; justify-content: center; gap: 20px; text-align: center; }
+.search-icon { font-size: 64px; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.95)} }
+.search-title { font-family: 'Space Mono', monospace; font-size: 20px; color: var(--accent); }
+.search-sub { font-size: 14px; color: var(--muted); }
+.search-dots span {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); margin: 0 3px;
+  animation: dot 1.2s ease-in-out infinite;
+}
+.search-dots span:nth-child(2) { animation-delay: 0.2s; }
+.search-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+.cancel-btn {
+  background: none; border: 0.5px solid var(--border); border-radius: 10px;
+  padding: 12px 32px; color: var(--muted); font-size: 14px; cursor: pointer;
+}
+.cancel-btn:active { opacity: 0.6; }
+
+/* ─── GAME ─── */
+#game { padding: 12px 12px 20px; gap: 10px; }
+
+.players-bar {
+  display: flex; align-items: stretch; gap: 8px;
+}
+.pcard {
+  flex: 1; background: var(--surface); border-radius: 10px;
+  border: 0.5px solid var(--border); padding: 10px 12px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.pcard.myturn {
+  border-color: var(--accent); background: var(--accent-dim);
+}
+.pcard-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.pchip { width: 20px; height: 20px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
+.pchip.white { background: var(--p1); border-color: var(--p1-border); }
+.pchip.black { background: var(--p2); border-color: var(--p2-border); }
+.pcard-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcard-timer {
+  font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700;
+  color: var(--text);
+}
+.pcard.myturn .pcard-timer { color: var(--accent); }
+.pcard-timer.low { color: var(--danger) !important; animation: blink 0.8s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.stake-info {
+  text-align: center; font-size: 12px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.stake-info .pot {
+  font-family: 'Space Mono', monospace; font-size: 14px; color: var(--accent);
+}
+
+.board-wrap {
+  background: var(--surface); border-radius: 12px;
+  border: 0.5px solid var(--border); padding: 10px;
+}
+#board {
+  display: grid; grid-template-columns: repeat(8, 1fr);
+  gap: 3px; aspect-ratio: 1;
+}
+.cell {
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; transition: background 0.1s;
+  aspect-ratio: 1;
+}
+.cell.light { background: var(--cell-light); }
+.cell.dark { background: var(--cell-dark); }
+.cell.sel { background: #1a4a00 !important; }
+.cell.hint { background: var(--cell-hint) !important; cursor: pointer; }
+.cell.hint::after {
+  content: ''; position: absolute;
+  width: 35%; height: 35%; border-radius: 50%;
+  background: rgba(200,245,90,0.4); border: 1px solid var(--accent);
+}
+.cell.hint.capture::after { background: rgba(255,77,77,0.4); border-color: var(--danger); }
+.piece {
+  width: 78%; height: 78%; border-radius: 50%;
+  border: 2px solid; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: transform 0.1s; position: relative; z-index: 1;
+  user-select: none;
+}
+.piece.p1 { background: var(--p1); border-color: var(--p1-border); }
+.piece.p2 { background: var(--p2); border-color: var(--p2-border); }
+.piece.king::after { content: '♛'; font-size: 11px; color: inherit; opacity: 0.7; }
+.piece.p1.king::after { color: #333; }
+.piece.p2.king::after { color: #1a3300; }
+
+.status-bar {
+  text-align: center; font-size: 13px; color: var(--muted);
+  min-height: 18px; padding: 0 8px;
+}
+.status-bar.warn { color: var(--danger); }
+.status-bar.ok { color: var(--accent); }
+
+/* ─── RESULT ─── */
+#result { align-items: center; justify-content: center; gap: 16px; text-align: center; }
+.result-icon { font-size: 72px; }
+.result-title {
+  font-family: 'Space Mono', monospace; font-size: 24px; font-weight: 700;
+}
+.result-title.win { color: var(--accent); }
+.result-title.lose { color: var(--danger); }
+.result-title.draw { color: var(--muted); }
+.result-amount {
+  font-family: 'Space Mono', monospace; font-size: 18px;
+  padding: 10px 24px; border-radius: 10px;
+}
+.result-amount.win { background: var(--accent-dim); color: var(--accent); border: 0.5px solid var(--accent); }
+.result-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.result-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.btn-primary {
+  width: 100%; padding: 16px;
+  background: var(--accent); border: none; border-radius: 12px;
+  font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700;
+  color: #0d0d0d; cursor: pointer;
+}
+.btn-secondary {
+  width: 100%; padding: 14px;
+  background: none; border: 0.5px solid var(--border); border-radius: 12px;
+  font-size: 14px; color: var(--muted); cursor: pointer;
+}
+
+/* ─── CONNECTION STATUS ─── */
+#conn-status {
+  position: fixed; top: 8px; right: 12px; font-size: 11px;
+  padding: 4px 10px; border-radius: 20px; z-index: 100;
+  font-family: 'Space Mono', monospace;
+  transition: all 0.3s;
+}
+#conn-status.connected { background: rgba(200,245,90,0.15); color: var(--accent); }
+#conn-status.disconnected { background: rgba(255,77,77,0.15); color: var(--danger); }
+#conn-status.connecting { background: rgba(136,136,136,0.15); color: var(--muted); }
+
+/* ─── TOAST ─── */
+#toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--surface2); border: 0.5px solid var(--border);
+  border-radius: 10px; padding: 10px 20px; font-size: 13px; color: var(--text);
+  opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; z-index: 200;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="conn-status" class="connecting">●  connecting</div>
+<div id="toast"></div>
+
+<div id="app">
+
+  <!-- LOBBY -->
+  <div id="lobby" class="screen active">
+    <div class="logo-block">
+      <div class="logo-title">CHECKERS</div>
+      <div class="logo-sub">stake · play · win</div>
+    </div>
+
+    <div class="user-row">
+      <div class="user-avatar" id="lobby-avatar">?</div>
+      <div>
+        <div class="user-name" id="lobby-name">Загрузка...</div>
+        <div class="user-id" id="lobby-id"></div>
+      </div>
+      <div class="user-bal" id="lobby-bal">0 USDT</div>
+    </div>
+
+    <div class="section-label">Выбери ставку</div>
+    <div class="stake-grid">
+      <div class="stake-btn selected" data-val="5" onclick="selectStake(5, this)">
+        <div>5</div><div class="stake-label">USDT</div>
+      </div>
+      <div class="stake-btn" data-val="10" onclick="selectStake(10, this)">
+        <div>10</div><div class="stake-label">USDT</div>
+      </div>
+      <div class="stake-btn" data-val="25" onclick="selectStake(25, this)">
+        <div>25</div><div class="stake-label">USDT</div>
+      </div>
+    </div>
+    <div class="custom-stake" style="margin-bottom:24px">
+      <input type="number" id="custom-input" placeholder="Своя сумма" min="1" max="1000"
+        oninput="selectStake(+this.value, null)">
+      <span>USDT</span>
+    </div>
+
+    <button class="play-btn" id="play-btn" onclick="findMatch()">
+      НАЙТИ СОПЕРНИКА →
+    </button>
+  </div>
+
+  <!-- SEARCHING -->
+  <div id="searching" class="screen">
+    <div class="search-icon">♟</div>
+    <div class="search-title">Поиск соперника</div>
+    <div class="search-sub">Ставка: <span id="search-stake" style="color:var(--accent);font-family:Space Mono,monospace">10 USDT</span></div>
+    <div class="search-dots"><span></span><span></span><span></span></div>
+    <button class="cancel-btn" onclick="cancelSearch()">Отмена</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="screen">
+    <div class="players-bar">
+      <div class="pcard myturn" id="pcard1">
+        <div class="pcard-top">
+          <div class="pchip white"></div>
+          <div class="pcard-name" id="p1name">Player 1</div>
+        </div>
+        <div class="pcard-timer" id="timer1">2:00</div>
+      </div>
+      <div style="display:flex;align-items:center;padding:0 2px">
+        <div class="stake-info">
+          <span>Банк</span>
+          <span class="pot" id="pot-label">20 USDT</span>
+        </div>
+      </div>
+      <div class="pcard" id="pcard2">
+        <div class="pcard-top">
+          <div class="pchip black"></div>
+          <div class="pcard-name" id="p2name">Player 2</div>
+        </div>
+        <div class="pcard-timer" id="timer2">2:00</div>
+      </div>
+    </div>
+
+    <div class="board-wrap">
+      <div id="board"></div>
+    </div>
+
+    <div class="status-bar" id="status-bar">Ход игрока 1</div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result" class="screen">
+    <div class="result-icon" id="result-icon">🏆</div>
+    <div class="result-title" id="result-title">Победа!</div>
+    <div class="result-amount win" id="result-amount">+17 USDT</div>
+    <div class="result-sub" id="result-sub">Комиссия платформы: 3%<br>Зачислено на баланс TON</div>
+    <div class="result-btns">
+      <button class="btn-primary" onclick="goLobby()">Играть снова</button>
+      <button class="btn-secondary" onclick="goLobby()">В лобби</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const WS_URL = 'ws://localhost:8080';
+const HTTP_URL = 'http://localhost:3000';
+
+let ws = null;
+let myPlayerId = null;
+let myToken = null;
+let mySessionId = null;
+let selectedStake = 5;
+let myPlayerIndex = null; // 1 или 2 (белые/чёрные)
+
+let board = [];
+let selected = null;
+let hints = [];
+let currentPlayer = 1;
+let forcedFrom = null;
+let gameOver = false;
+let times = [120, 120];
+let timerInterval = null;
+let isMyTurn = false;
+
+// ─── TELEGRAM ───
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
+
+function getTgUser() {
+  if (tg?.initDataUnsafe?.user) {
+    return tg.initDataUnsafe.user;
+  }
+  return { id: Math.floor(Math.random()*100000)+1000, first_name: 'Player', username: 'player' };
+}
+
+// ─── INIT ───
+async function init() {
+  const user = getTgUser();
+  const initials = (user.first_name||'P')[0].toUpperCase();
+  document.getElementById('lobby-avatar').textContent = initials;
+  document.getElementById('lobby-name').textContent = user.first_name + (user.last_name ? ' '+user.last_name : '');
+  document.getElementById('lobby-id').textContent = '@' + (user.username || user.id);
+
+  try {
+    const res = await fetch(HTTP_URL + '/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ tgId: user.id, username: user.username || user.first_name })
+    });
+    const data = await res.json();
+    myPlayerId = data.id;
+    myToken = data.token;
+    document.getElementById('lobby-bal').textContent = (data.balance||0) + ' USDT';
+    setConnStatus('connected');
+  } catch(e) {
+    setConnStatus('disconnected');
+    toast('Сервер недоступен. Проверь подключение.');
+  }
+}
+
+// ─── UI HELPERS ───
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function setConnStatus(s) {
+  const el = document.getElementById('conn-status');
+  el.className = s;
+  el.textContent = s === 'connected' ? '● online' : s === 'connecting' ? '● connecting' : '● offline';
+}
+
+function toast(msg, dur=3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function selectStake(val, btn) {
+  selectedStake = val || selectedStake;
+  document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+  if (btn) {
+    btn.classList.add('selected');
+    document.getElementById('custom-input').value = '';
+  }
+}
+
+// ─── WEBSOCKET ───
+function connectWS(onOpen) {
+  if (!myToken) { toast('Сначала авторизуйся'); return; }
+  setConnStatus('connecting');
+  ws = new WebSocket(WS_URL + '?token=' + myToken);
+
+  ws.onopen = () => {
+    setConnStatus('connected');
+    if (onOpen) onOpen();
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleMessage(msg);
+  };
+
+  ws.onclose = () => {
+    setConnStatus('disconnected');
+  };
+
+  ws.onerror = () => {
+    setConnStatus('disconnected');
+    toast('Ошибка соединения');
+  };
+}
+
+function handleMessage(msg) {
+  if (msg.type === 'searching') {
+    showScreen('searching');
+  }
+
+  if (msg.type === 'match_found') {
+    mySessionId = msg.sessionId;
+    const players = msg.state ? [msg.state] : [];
+    startGame(msg);
+  }
+
+  if (msg.type === 'state_update') {
+    updateGameState(msg.state);
+  }
+
+  if (msg.type === 'timer_update') {
+    times[0] = msg.whiteTime;
+    times[1] = msg.blackTime;
+    renderTimers();
+  }
+
+  if (msg.type === 'game_over') {
+    endGame(msg.winner);
+  }
+
+  if (msg.type === 'error') {
+    toast('⚠ ' + msg.message);
+  }
+}
+
+// ─── MATCHMAKING ───
+function findMatch() {
+  if (!selectedStake || selectedStake < 1) { toast('Выбери ставку'); return; }
+  if (!myToken) { toast('Подключение...'); init().then(findMatch); return; }
+
+  document.getElementById('search-stake').textContent = selectedStake + ' USDT';
+
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    connectWS(() => {
+      ws.send(JSON.stringify({ type: 'find_match' }));
+    });
+  } else {
+    ws.send(JSON.stringify({ type: 'find_match' }));
+    showScreen('searching');
+  }
+}
+
+function cancelSearch() {
+  if (ws) ws.close();
+  showScreen('lobby');
+}
+
+function goLobby() {
+  gameOver = true;
+  clearInterval(timerInterval);
+  if (ws) ws.close();
+  showScreen('lobby');
+}
+
+// ─── GAME START ───
+function startGame(msg) {
+  const state = msg.state;
+
+  // Определяем кто мы — белые (1) или чёрные (2)
+  // players[0] = белые, players[1] = чёрные
+  // В wsServer: [opponentId, playerId] — мы второй
+  myPlayerIndex = 2; // по умолчанию — уточним по sessionId или порядку
+  // Если мы первый в очереди — мы белые
+  // Простая эвристика: если наш id совпадает с тем кто нашёл матч первым
+  // На практике сервер должен слать playerIndex — пока считаем нас чёрными
+
+  document.getElementById('p1name').textContent = 'Белые';
+  document.getElementById('p2name').textContent = 'Чёрные (ты)';
+  document.getElementById('pot-label').textContent = (selectedStake * 2) + ' USDT';
+
+  board = state.board;
+  currentPlayer = state.currentPlayer;
+  forcedFrom = state.forcedFrom || null;
+  gameOver = false;
+  selected = null;
+  hints = [];
+  times = [120, 120];
+
+  isMyTurn = currentPlayer === myPlayerIndex;
+
+  showScreen('game');
+  renderBoard();
+  renderTimers();
+  startClientTimer();
+}
+
+function updateGameState(state) {
+  board = state.board;
+  currentPlayer = state.currentPlayer;
+  forcedFrom = state.forcedFrom || null;
+  isMyTurn = currentPlayer === myPlayerIndex;
+  selected = null;
+  hints = [];
+  renderBoard();
+  updateStatusBar();
+}
+
+// ─── GAME LOGIC (CLIENT-SIDE для подсветки) ───
+function isKing(v) { return v === 3 || v === 4; }
+function isOwn(v, p) { return p === 1 ? (v===1||v===3) : (v===2||v===4); }
+function enemyVals(p) { return p === 1 ? [2,4] : [1,3]; }
+
+function hasCaptureFrom(b, x, y, p) {
+  const piece = b[y][x];
+  const enemies = enemyVals(p);
+  if (!isKing(piece)) {
+    for (const dx of [-1,1]) for (const dy of [-1,1]) {
+      const mx=x+dx, my=y+dy, tx=x+dx*2, ty=y+dy*2;
+      if(ty>=0&&ty<8&&tx>=0&&tx<8 && enemies.includes(b[my]?.[mx]) && b[ty]?.[tx]===0) return true;
+    }
+    return false;
+  }
+  for (const [dx,dy] of [[1,1],[1,-1],[-1,1],[-1,-1]]) {
+    let cx=x+dx, cy=y+dy, found=false;
+    while(cx>=0&&cx<8&&cy>=0&&cy<8) {
+      const c=b[cy][cx];
+      if(c===0){if(found)return true;}
+      else if(enemies.includes(c)&&!found){found=true;}
+      else break;
+      cx+=dx; cy+=dy;
+    }
+  }
+  return false;
+}
+
+function hasAnyCapture(b, p) {
+  for(let y=0;y<8;y++) for(let x=0;x<8;x++)
+    if(isOwn(b[y][x],p) && hasCaptureFrom(b,x,y,p)) return true;
+  return false;
+}
+
+function getHints(x, y) {
+  if (!board[y] || !board[y][x]) return [];
+  const piece = board[y][x];
+  if (!isOwn(piece, myPlayerIndex)) return [];
+  if (forcedFrom && !(forcedFrom[0]===x && forcedFrom[1]===y)) return [];
+
+  const moves = [];
+  const mustCapture = forcedFrom ? true : hasAnyCapture(board, myPlayerIndex);
+  const enemies = enemyVals(myPlayerIndex);
+
+  if (!isKing(piece)) {
+    const fwd = myPlayerIndex === 1 ? 1 : -1;
+    if (!mustCapture) {
+      for (const dx of [-1,1]) {
+        const tx=x+dx, ty=y+fwd;
+        if(ty>=0&&ty<8&&tx>=0&&tx<8&&board[ty]?.[tx]===0)
+          moves.push({tx,ty,isCapture:false});
+      }
+    }
+    for (const dx of [-1,1]) for (const dy of [-1,1]) {
+      const mx=x+dx, my=y+dy, tx=x+dx*2, ty=y+dy*2;
+      if(ty>=0&&ty<8&&tx>=0&&tx<8 && enemies.includes(board[my]?.[mx]) && board[ty]?.[tx]===0)
+        moves.push({tx,ty,isCapture:true});
+    }
+  } else {
+    for (const [dx,dy] of [[1,1],[1,-1],[-1,1],[-1,-1]]) {
+      let cx=x+dx, cy=y+dy, capAt=null;
+      while(cx>=0&&cx<8&&cy>=0&&cy<8) {
+        const c=board[cy][cx];
+        if(c===0){
+          if(!mustCapture||capAt) moves.push({tx:cx,ty:cy,isCapture:!!capAt});
+        } else if(enemies.includes(c)&&!capAt){capAt=[cx,cy];}
+        else break;
+        cx+=dx; cy+=dy;
+      }
+    }
+  }
+  return moves;
+}
+
+// ─── BOARD RENDER ───
+function renderBoard() {
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+
+  for (let y=0; y<8; y++) {
+    for (let x=0; x<8; x++) {
+      const cell = document.createElement('div');
+      const isDark = (x+y)%2===1;
+      cell.className = 'cell ' + (isDark ? 'dark' : 'light');
+
+      const isSel = selected && selected[0]===x && selected[1]===y;
+      const hint = hints.find(h=>h.tx===x&&h.ty===y);
+
+      if (isSel) cell.classList.add('sel');
+      else if (hint) {
+        cell.classList.add('hint');
+        if (hint.isCapture) cell.classList.add('capture');
+      }
+
+      const v = board[y]?.[x];
+      if (v && !hint) {
+        const p = document.createElement('div');
+        const owner = (v===1||v===3) ? 1 : 2;
+        p.className = 'piece p'+(owner===1?'1':'2') + (isKing(v)?' king':'');
+        cell.appendChild(p);
+      }
+
+      if (isDark) cell.addEventListener('click', () => onCellClick(x, y));
+      el.appendChild(cell);
+    }
+  }
+
+  updateStatusBar();
+  updatePlayerCards();
+}
+
+function updatePlayerCards() {
+  document.getElementById('pcard1').className = 'pcard' + (currentPlayer===1?' myturn':'');
+  document.getElementById('pcard2').className = 'pcard' + (currentPlayer===2?' myturn':'');
+}
+
+function updateStatusBar() {
+  const bar = document.getElementById('status-bar');
+  if (gameOver) { bar.textContent = ''; return; }
+
+  if (!isMyTurn) {
+    bar.className = 'status-bar';
+    bar.textContent = 'Ожидаем ход соперника...';
+    return;
+  }
+  if (forcedFrom) {
+    bar.className = 'status-bar warn';
+    bar.textContent = 'Продолжайте взятие!';
+    return;
+  }
+  const mustCap = hasAnyCapture(board, myPlayerIndex);
+  if (mustCap) {
+    bar.className = 'status-bar warn';
+    bar.textContent = 'Взятие обязательно!';
+  } else {
+    bar.className = 'status-bar ok';
+    bar.textContent = 'Ваш ход';
+  }
+}
+
+function onCellClick(x, y) {
+  if (gameOver || !isMyTurn) return;
+
+  const v = board[y]?.[x];
+
+  if (isOwn(v, myPlayerIndex) && (!forcedFrom || (forcedFrom[0]===x&&forcedFrom[1]===y))) {
+    selected = [x, y];
+    hints = getHints(x, y);
+    renderBoard();
+    return;
+  }
+
+  if (selected) {
+    const hint = hints.find(h=>h.tx===x&&h.ty===y);
+    if (hint) {
+      sendMove(selected[0], selected[1], x, y);
+      selected = null;
+      hints = [];
+      isMyTurn = false;
+      renderBoard();
+      return;
+    }
+  }
+
+  selected = null;
+  hints = [];
+  renderBoard();
+}
+
+function sendMove(fx, fy, tx, ty) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    toast('Нет соединения');
+    return;
+  }
+  ws.send(JSON.stringify({
+    type: 'move',
+    move: { from: [fx, fy], to: [tx, ty] }
+  }));
+}
+
+// ─── TIMERS ───
+function renderTimers() {
+  const fmt = s => {
+    const m = Math.floor(Math.max(0,s)/60);
+    const sec = Math.max(0,s)%60;
+    return m+':'+(sec<10?'0':'')+sec;
+  };
+  const t1 = document.getElementById('timer1');
+  const t2 = document.getElementById('timer2');
+  t1.textContent = fmt(times[0]);
+  t2.textContent = fmt(times[1]);
+  t1.className = 'pcard-timer' + (times[0]<=10?' low':'');
+  t2.className = 'pcard-timer' + (times[1]<=10?' low':'');
+}
+
+function startClientTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (gameOver) return;
+    const idx = currentPlayer - 1;
+    times[idx] = Math.max(0, times[idx] - 1);
+    renderTimers();
+  }, 1000);
+}
+
+// ─── GAME OVER ───
+function endGame(winnerId) {
+  gameOver = true;
+  clearInterval(timerInterval);
+
+  const isWinner = winnerId === myPlayerId;
+  const isDraw = !winnerId;
+  const fee = selectedStake * 2 * 0.03;
+  const prize = (selectedStake * 2 - fee).toFixed(2);
+
+  document.getElementById('result-icon').textContent = isDraw ? '🤝' : isWinner ? '🏆' : '😔';
+  document.getElementById('result-title').textContent = isDraw ? 'Ничья' : isWinner ? 'Победа!' : 'Поражение';
+  document.getElementById('result-title').className = 'result-title ' + (isDraw?'draw':isWinner?'win':'lose');
+
+  const amountEl = document.getElementById('result-amount');
+  if (isWinner) {
+    amountEl.textContent = '+' + prize + ' USDT';
+    amountEl.className = 'result-amount win';
+  } else if (isDraw) {
+    amountEl.textContent = 'Возврат ставки';
+    amountEl.className = 'result-amount';
+    amountEl.style.color = 'var(--muted)';
+  } else {
+    amountEl.textContent = '-' + selectedStake + ' USDT';
+    amountEl.className = 'result-amount';
+    amountEl.style.color = 'var(--danger)';
+    amountEl.style.background = 'rgba(255,77,77,0.1)';
+    amountEl.style.borderColor = 'var(--danger)';
+  }
+
+  showScreen('result');
+}
+
+init();
+</script>
+</body>
+</html>
