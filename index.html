@@ -417,6 +417,14 @@ async function init() {
     myToken = data.token;
     document.getElementById('lobby-bal').textContent = (data.balance||0) + ' USDT';
     setConnStatus('connected');
+
+    // Проверяем есть ли незавершённая игра
+    const savedSession = sessionStorage.getItem('activeSession');
+    if (savedSession) {
+      mySessionId = savedSession;
+      toast('Восстанавливаем игру...');
+      reconnectToGame();
+    }
   } catch(e) {
     setConnStatus('disconnected');
     toast('Сервер недоступен. Проверь подключение.');
@@ -451,6 +459,33 @@ function selectStake(val, btn) {
   }
 }
 
+// ─── RECONNECT ───
+function reconnectToGame() {
+  if (!myToken || !mySessionId) return;
+  setConnStatus('connecting');
+  ws = new WebSocket(WS_URL + '?token=' + myToken + '&gameId=' + mySessionId);
+
+  ws.onopen = () => {
+    setConnStatus('connected');
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    handleMessage(msg);
+  };
+
+  ws.onclose = () => {
+    setConnStatus('disconnected');
+    if (mySessionId && !gameOver) {
+      setTimeout(() => reconnectToGame(), 3000);
+    }
+  };
+
+  ws.onerror = () => {
+    setConnStatus('disconnected');
+  };
+}
+
 // ─── WEBSOCKET ───
 function connectWS(onOpen) {
   if (!myToken) { toast('Сначала авторизуйся'); return; }
@@ -469,6 +504,11 @@ function connectWS(onOpen) {
 
   ws.onclose = () => {
     setConnStatus('disconnected');
+    // Если были в игре — пытаемся реконнектиться
+    if (mySessionId && !gameOver) {
+      toast('Соединение потеряно. Переподключение...');
+      setTimeout(() => reconnectToGame(), 3000);
+    }
   };
 
   ws.onerror = () => {
@@ -484,8 +524,18 @@ function handleMessage(msg) {
 
   if (msg.type === 'match_found') {
     mySessionId = msg.sessionId;
+    sessionStorage.setItem('activeSession', msg.sessionId);
     const players = msg.state ? [msg.state] : [];
     startGame(msg);
+  }
+
+  if (msg.type === 'reconnected') {
+    mySessionId = msg.sessionId;
+    myPlayerIndex = msg.playerIndex;
+    sessionStorage.setItem('activeSession', msg.sessionId);
+    updateGameState(msg.state);
+    showScreen('game');
+    toast('Игра восстановлена');
   }
 
   if (msg.type === 'state_update') {
