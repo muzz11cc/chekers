@@ -229,6 +229,11 @@ body {
 .result-amount.win { background: var(--accent-dim); color: var(--accent); border: 0.5px solid var(--accent); }
 .result-amount.lose { background: rgba(255,77,77,0.1); color: var(--danger); border: 0.5px solid var(--danger); }
 .result-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.history-item { background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
+.history-item .hi-vs { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.hi-win { color: var(--accent); font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
+.hi-lose { color: var(--danger); font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
+.hi-draw { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 13px; }
 
 /* ─── STATS ─── */
 .stats-row {
@@ -326,19 +331,28 @@ body {
       <div class="user-bal" id="lobby-bal">0 USDT</div>
     </div>
 
-    <div class="stats-row">
+    <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
       <div class="stat-card">
         <div class="stat-val" id="stat-wins">0</div>
         <div class="stat-lbl">Победы</div>
       </div>
       <div class="stat-card">
         <div class="stat-val" id="stat-losses">0</div>
-        <div class="stat-lbl">Поражения</div>
+        <div class="stat-lbl">Пораж.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-draws">0</div>
+        <div class="stat-lbl">Ничьи</div>
       </div>
       <div class="stat-card">
         <div class="stat-val" id="stat-games">0</div>
         <div class="stat-lbl">Игр</div>
       </div>
+    </div>
+
+    <div id="history-section" style="margin-bottom:16px;display:none">
+      <div class="section-label" style="margin-bottom:8px">История игр</div>
+      <div id="history-list" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div>
     </div>
 
     <div class="wallet-row">
@@ -480,8 +494,9 @@ async function init() {
     const data = await res.json();
     myPlayerId = data.id;
     myToken = data.token;
-    document.getElementById('lobby-bal').textContent = (data.balance||0) + ' USDT';
     setConnStatus('connected');
+    updateStats(data);
+    loadHistory();
   } catch(e) {
     setConnStatus('disconnected');
     toast('Сервер недоступен. Проверь подключение.');
@@ -889,7 +904,7 @@ function endGame(winnerId) {
   if (isWinner) {
     amountEl.textContent = '+' + prize + ' USDT';
     amountEl.className = 'result-amount win';
-    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' USDT) | Банк: ' + pot + ' USDT';
+    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' USDT) Банк: ' + pot + ' USDT';
   } else if (isDraw) {
     amountEl.textContent = 'Возврат: +' + loss + ' USDT';
     amountEl.className = 'result-amount';
@@ -898,25 +913,49 @@ function endGame(winnerId) {
   } else {
     amountEl.textContent = '-' + loss + ' USDT';
     amountEl.className = 'result-amount lose';
-    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' USDT | Победитель получил: +' + prize + ' USDT';
+    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' USDT | Комиссия: 3% (' + fee.toFixed(2) + ' USDT)'
   }
 
-  // Обновляем статистику
-  const wins = parseInt(localStorage.getItem('stat_wins') || '0') + (isWinner ? 1 : 0);
-  const losses = parseInt(localStorage.getItem('stat_losses') || '0') + (!isWinner && !isDraw ? 1 : 0);
-  const games = parseInt(localStorage.getItem('stat_games') || '0') + 1;
-  localStorage.setItem('stat_wins', wins);
-  localStorage.setItem('stat_losses', losses);
-  localStorage.setItem('stat_games', games);
-  updateStats();
+  // Обновляем статистику с сервера
+  setTimeout(() => { init(); }, 1000);
 
   showScreen('result');
 }
 
-function updateStats() {
-  document.getElementById('stat-wins').textContent = localStorage.getItem('stat_wins') || '0';
-  document.getElementById('stat-losses').textContent = localStorage.getItem('stat_losses') || '0';
-  document.getElementById('stat-games').textContent = localStorage.getItem('stat_games') || '0';
+function updateStats(data) {
+  document.getElementById('stat-wins').textContent = data ? (data.wins || 0) : '0';
+  document.getElementById('stat-losses').textContent = data ? (data.losses || 0) : '0';
+  document.getElementById('stat-draws').textContent = data ? (data.draws || 0) : '0';
+  document.getElementById('stat-games').textContent = data ? (data.games || 0) : '0';
+  if (data && data.balance !== undefined) {
+    document.getElementById('lobby-bal').textContent = parseFloat(data.balance).toFixed(2) + ' USDT';
+  }
+}
+
+async function loadHistory() {
+  if (!myPlayerId) return;
+  try {
+    const res = await fetch(HTTP_URL + '/history/' + myPlayerId, {
+      headers: {'ngrok-skip-browser-warning': 'true'}
+    });
+    const games = await res.json();
+    if (!Array.isArray(games) || games.length === 0) { document.getElementById('history-section').style.display = 'none'; return; }
+    document.getElementById('history-section').style.display = 'block';
+    const list = document.getElementById('history-list');
+    list.innerHTML = '';
+    games.forEach(g => {
+      const isWin = g.winner === myPlayerId;
+      const isDraw = !g.winner;
+      const opp = (g.players || []).find(p => p !== myPlayerId) || '?';
+      const stake = g.transcript && g.transcript.betAmount ? g.transcript.betAmount : 0;
+      const pot = stake * 2;
+      const payout = (pot * 0.97).toFixed(2);
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      div.innerHTML = '<div><div style="font-size:13px;font-weight:500">vs ' + opp.replace('tg_','') + '</div><div class="hi-vs">Банк: ' + pot + ' USDT</div></div><div class="' + (isDraw?'hi-draw':isWin?'hi-win':'hi-lose') + '">' + (isDraw ? '= Ничья' : isWin ? '+'+payout+' USDT' : '-'+stake+' USDT') + '</div>';
+      list.appendChild(div);
+    });
+  } catch(e) { document.getElementById('history-section').style.display = 'none'; }
 }
 
 function onDeposit() {
