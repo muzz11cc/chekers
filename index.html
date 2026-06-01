@@ -889,8 +889,7 @@ function endGame(winnerId) {
   if (isWinner) {
     amountEl.textContent = '+' + prize + ' USDT';
     amountEl.className = 'result-amount win';
-    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' USDT)
-Банк: ' + pot + ' USDT';
+    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' USDT) • Банк: ' + pot + ' USDT';
   } else if (isDraw) {
     amountEl.textContent = 'Возврат: +' + loss + ' USDT';
     amountEl.className = 'result-amount';
