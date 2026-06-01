@@ -1014,21 +1014,47 @@ async function loadHistory() {
     games.forEach(g => {
       const isWin = g.winner === myPlayerId;
       const isDraw = !g.winner;
-      const oppId = (g.players || []).find(p => p !== myPlayerId) || '?';
-      const opp = oppId.replace('tg_', '@');
-      const whiteStake = g.transcript && g.transcript.whiteStake ? g.transcript.whiteStake : 0;
-      const blackStake = g.transcript && g.transcript.blackStake ? g.transcript.blackStake : 0;
-      const pot = whiteStake + blackStake;
+      
+      // Определяем кто я — белые (первый игрок) или чёрные (второй)
       const myIsWhite = g.players && g.players[0] === myPlayerId;
-      const myStakeInGame = myIsWhite ? whiteStake : blackStake;
+      const myStakeInGame = myIsWhite ? (g.transcript?.whiteStake || 0) : (g.transcript?.blackStake || 0);
+      
+      // Берём имя соперника из transcript
+      const oppName = myIsWhite 
+        ? (g.transcript?.blackUsername || "Player")
+        : (g.transcript?.whiteUsername || "Player");
+      
+      // Ставки и банк
+      const whiteStake = g.transcript?.whiteStake || 0;
+      const blackStake = g.transcript?.blackStake || 0;
+      const pot = whiteStake + blackStake;
       const payout = (pot * 0.97).toFixed(2);
+      
+      // Результат
+      const resultText = isDraw 
+        ? '= Ничья' 
+        : isWin 
+          ? '+' + payout + ' USDT' 
+          : '-' + myStakeInGame + ' USDT';
+      const resultClass = isDraw ? 'hi-draw' : isWin ? 'hi-win' : 'hi-lose';
+      
       const div = document.createElement('div');
       div.className = 'history-item';
-      div.innerHTML = '<div><div style="font-size:13px;font-weight:500">vs ' + opp + '</div><div class="hi-vs">Банк: ' + pot + ' USDT</div></div><div class="' + (isDraw?'hi-draw':isWin?'hi-win':'hi-lose') + '">' + (isDraw ? '= Ничья' : isWin ? '+'+payout+' USDT' : '-'+myStakeInGame+' USDT') + '</div>';
+      div.innerHTML = `
+        <div>
+          <div style="font-size:13px;font-weight:500">vs ${oppName}</div>
+          <div class="hi-vs">Банк: ${pot} USDT</div>
+        </div>
+        <div class="${resultClass}">${resultText}</div>
+      `;
       list.appendChild(div);
     });
-  } catch(e) { document.getElementById('history-section').style.display = 'none'; }
+  } catch(e) { 
+    console.error('History load error:', e);
+    document.getElementById('history-section').style.display = 'none'; 
+  }
 }
+
 
 function onDeposit() {
   toast('Пополнение будет доступно после интеграции TON кошелька');
