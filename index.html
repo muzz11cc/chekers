@@ -227,7 +227,48 @@ body {
   padding: 10px 24px; border-radius: 10px;
 }
 .result-amount.win { background: var(--accent-dim); color: var(--accent); border: 0.5px solid var(--accent); }
+.result-amount.lose { background: rgba(255,77,77,0.1); color: var(--danger); border: 0.5px solid var(--danger); }
 .result-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ─── STATS ─── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px;
+  padding: 12px 8px; text-align: center;
+}
+.stat-val {
+  font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--accent);
+}
+.stat-lbl { font-size: 10px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+/* ─── DEPOSIT/WITHDRAW BUTTONS ─── */
+.wallet-row {
+  display: flex; gap: 8px; margin-bottom: 20px;
+}
+.wallet-btn {
+  flex: 1; padding: 12px; border-radius: 10px;
+  font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; border: 0.5px solid;
+  letter-spacing: 0.3px;
+}
+.wallet-btn.deposit {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--accent);
+}
+.wallet-btn.withdraw {
+  background: transparent; border-color: var(--border); color: var(--muted);
+}
+.wallet-btn:active { transform: scale(0.97); }
+
+/* ─── OPPONENT AVATAR ─── */
+.pcard-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--muted); flex-shrink: 0; overflow: hidden;
+}
+.pcard-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .result-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .btn-primary {
   width: 100%; padding: 16px;
@@ -285,6 +326,26 @@ body {
       <div class="user-bal" id="lobby-bal">0 USDT</div>
     </div>
 
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-wins">0</div>
+        <div class="stat-lbl">Победы</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-losses">0</div>
+        <div class="stat-lbl">Поражения</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-games">0</div>
+        <div class="stat-lbl">Игр</div>
+      </div>
+    </div>
+
+    <div class="wallet-row">
+      <button class="wallet-btn deposit" onclick="onDeposit()">⬇ Пополнить</button>
+      <button class="wallet-btn withdraw" onclick="onWithdraw()">⬆ Вывести</button>
+    </div>
+
     <div class="section-label">Выбери ставку</div>
     <div class="stake-grid">
       <div class="stake-btn selected" data-val="5" onclick="selectStake(5, this)">
@@ -323,6 +384,7 @@ body {
       <div class="pcard myturn" id="pcard1">
         <div class="pcard-top">
           <div class="pchip white"></div>
+          <div class="pcard-avatar" id="p1avatar">W</div>
           <div class="pcard-name" id="p1name">Player 1</div>
         </div>
         <div class="pcard-timer" id="timer1">2:00</div>
@@ -336,6 +398,7 @@ body {
       <div class="pcard" id="pcard2">
         <div class="pcard-top">
           <div class="pchip black"></div>
+          <div class="pcard-avatar" id="p2avatar">B</div>
           <div class="pcard-name" id="p2name">Player 2</div>
         </div>
         <div class="pcard-timer" id="timer2">2:00</div>
@@ -373,6 +436,8 @@ let myToken = null;
 let mySessionId = null;
 let selectedStake = 5;
 let myPlayerIndex = null; // 1 или 2 (белые/чёрные)
+let myPot = 0;       // банк текущей игры (с сервера)
+let myStake = 0;     // моя ставка в текущей игре
 
 let board = [];
 let selected = null;
@@ -417,14 +482,6 @@ async function init() {
     myToken = data.token;
     document.getElementById('lobby-bal').textContent = (data.balance||0) + ' USDT';
     setConnStatus('connected');
-
-    // Проверяем есть ли незавершённая игра
-    const savedSession = sessionStorage.getItem('activeSession');
-    if (savedSession) {
-      mySessionId = savedSession;
-      toast('Восстанавливаем игру...');
-      reconnectToGame();
-    }
   } catch(e) {
     setConnStatus('disconnected');
     toast('Сервер недоступен. Проверь подключение.');
@@ -459,33 +516,6 @@ function selectStake(val, btn) {
   }
 }
 
-// ─── RECONNECT ───
-function reconnectToGame() {
-  if (!myToken || !mySessionId) return;
-  setConnStatus('connecting');
-  ws = new WebSocket(WS_URL + '?token=' + myToken + '&gameId=' + mySessionId);
-
-  ws.onopen = () => {
-    setConnStatus('connected');
-  };
-
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    handleMessage(msg);
-  };
-
-  ws.onclose = () => {
-    setConnStatus('disconnected');
-    if (mySessionId && !gameOver) {
-      setTimeout(() => reconnectToGame(), 3000);
-    }
-  };
-
-  ws.onerror = () => {
-    setConnStatus('disconnected');
-  };
-}
-
 // ─── WEBSOCKET ───
 function connectWS(onOpen) {
   if (!myToken) { toast('Сначала авторизуйся'); return; }
@@ -504,11 +534,6 @@ function connectWS(onOpen) {
 
   ws.onclose = () => {
     setConnStatus('disconnected');
-    // Если были в игре — пытаемся реконнектиться
-    if (mySessionId && !gameOver) {
-      toast('Соединение потеряно. Переподключение...');
-      setTimeout(() => reconnectToGame(), 3000);
-    }
   };
 
   ws.onerror = () => {
@@ -524,18 +549,8 @@ function handleMessage(msg) {
 
   if (msg.type === 'match_found') {
     mySessionId = msg.sessionId;
-    sessionStorage.setItem('activeSession', msg.sessionId);
     const players = msg.state ? [msg.state] : [];
     startGame(msg);
-  }
-
-  if (msg.type === 'reconnected') {
-    mySessionId = msg.sessionId;
-    myPlayerIndex = msg.playerIndex;
-    sessionStorage.setItem('activeSession', msg.sessionId);
-    updateGameState(msg.state);
-    showScreen('game');
-    toast('Игра восстановлена');
   }
 
   if (msg.type === 'state_update') {
@@ -598,14 +613,25 @@ function startGame(msg) {
   // Простая эвристика: если наш id совпадает с тем кто нашёл матч первым
   // На практике сервер должен слать playerIndex — пока считаем нас чёрными
 
+  const myName = msg.myName || (myPlayerIndex === 1 ? 'Белые' : 'Чёрные');
+  const oppName = msg.opponentName || (myPlayerIndex === 1 ? 'Чёрные' : 'Белые');
+  const myInitial = myName[0].toUpperCase();
+  const oppInitial = oppName[0].toUpperCase();
+
   if (myPlayerIndex === 1) {
-    document.getElementById('p1name').textContent = (msg.myName || 'Белые') + ' (ты)';
-    document.getElementById('p2name').textContent = msg.opponentName || 'Чёрные';
+    document.getElementById('p1name').textContent = myName + ' (ты)';
+    document.getElementById('p2name').textContent = oppName;
+    document.getElementById('p1avatar').textContent = myInitial;
+    document.getElementById('p2avatar').textContent = oppInitial;
   } else {
-    document.getElementById('p1name').textContent = msg.opponentName || 'Белые';
-    document.getElementById('p2name').textContent = (msg.myName || 'Чёрные') + ' (ты)';
+    document.getElementById('p1name').textContent = oppName;
+    document.getElementById('p2name').textContent = myName + ' (ты)';
+    document.getElementById('p1avatar').textContent = oppInitial;
+    document.getElementById('p2avatar').textContent = myInitial;
   }
-  document.getElementById('pot-label').textContent = (msg.pot || selectedStake * 2) + ' USDT';
+  myPot = msg.pot || selectedStake * 2;
+  myStake = msg.myStake || selectedStake;
+  document.getElementById('pot-label').textContent = myPot + ' USDT';
 
   board = state.board;
   currentPlayer = state.currentPlayer;
@@ -842,34 +868,65 @@ function startClientTimer() {
 // ─── GAME OVER ───
 function endGame(winnerId) {
   gameOver = true;
+  sessionStorage.removeItem('activeSession');
   clearInterval(timerInterval);
 
   const isWinner = winnerId === myPlayerId;
   const isDraw = !winnerId;
-  const fee = selectedStake * 2 * 0.03;
-  const prize = (selectedStake * 2 - fee).toFixed(2);
+
+  // Считаем точно: берём реальный банк с сервера
+  const pot = myPot > 0 ? myPot : myStake * 2;
+  const fee = pot * 0.03;
+  const prize = (pot - fee).toFixed(2);
+  const loss = myStake > 0 ? myStake.toFixed(2) : selectedStake.toFixed(2);
 
   document.getElementById('result-icon').textContent = isDraw ? '🤝' : isWinner ? '🏆' : '😔';
   document.getElementById('result-title').textContent = isDraw ? 'Ничья' : isWinner ? 'Победа!' : 'Поражение';
   document.getElementById('result-title').className = 'result-title ' + (isDraw?'draw':isWinner?'win':'lose');
 
   const amountEl = document.getElementById('result-amount');
+  amountEl.style.cssText = ''; // сбрасываем inline стили
   if (isWinner) {
     amountEl.textContent = '+' + prize + ' USDT';
     amountEl.className = 'result-amount win';
+    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' USDT)
+Банк: ' + pot + ' USDT';
   } else if (isDraw) {
-    amountEl.textContent = 'Возврат ставки';
+    amountEl.textContent = 'Возврат: +' + loss + ' USDT';
     amountEl.className = 'result-amount';
     amountEl.style.color = 'var(--muted)';
+    document.getElementById('result-sub').textContent = 'Ничья — ставки возвращены';
   } else {
-    amountEl.textContent = '-' + selectedStake + ' USDT';
-    amountEl.className = 'result-amount';
-    amountEl.style.color = 'var(--danger)';
-    amountEl.style.background = 'rgba(255,77,77,0.1)';
-    amountEl.style.borderColor = 'var(--danger)';
+    amountEl.textContent = '-' + loss + ' USDT';
+    amountEl.className = 'result-amount lose';
+    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' USDT
+Победитель получил: +' + prize + ' USDT';
   }
 
+  // Обновляем статистику
+  const wins = parseInt(localStorage.getItem('stat_wins') || '0') + (isWinner ? 1 : 0);
+  const losses = parseInt(localStorage.getItem('stat_losses') || '0') + (!isWinner && !isDraw ? 1 : 0);
+  const games = parseInt(localStorage.getItem('stat_games') || '0') + 1;
+  localStorage.setItem('stat_wins', wins);
+  localStorage.setItem('stat_losses', losses);
+  localStorage.setItem('stat_games', games);
+  updateStats();
+
   showScreen('result');
+}
+
+function updateStats() {
+  document.getElementById('stat-wins').textContent = localStorage.getItem('stat_wins') || '0';
+  document.getElementById('stat-losses').textContent = localStorage.getItem('stat_losses') || '0';
+  document.getElementById('stat-games').textContent = localStorage.getItem('stat_games') || '0';
+}
+
+function onDeposit() {
+  toast('Пополнение будет доступно после интеграции TON кошелька');
+}
+
+function onWithdraw() {
+  toast('Вывод будет доступен после интеграции TON кошелька');
 }
 
 init();
