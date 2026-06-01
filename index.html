@@ -474,7 +474,7 @@ async function init() {
   try {
     const res = await fetch(HTTP_URL + '/login', {
       method: 'POST',
-      headers: {'Content-Type':'application/json', 'ngrok-skip-browser-warning': 'true'},
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ tgId: user.id, username: user.username || user.first_name })
     });
     const data = await res.json();
@@ -889,7 +889,7 @@ function endGame(winnerId) {
   if (isWinner) {
     amountEl.textContent = '+' + prize + ' USDT';
     amountEl.className = 'result-amount win';
-    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' USDT) • Банк: ' + pot + ' USDT';
+    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' USDT) | Банк: ' + pot + ' USDT';
   } else if (isDraw) {
     amountEl.textContent = 'Возврат: +' + loss + ' USDT';
     amountEl.className = 'result-amount';
@@ -898,8 +898,7 @@ function endGame(winnerId) {
   } else {
     amountEl.textContent = '-' + loss + ' USDT';
     amountEl.className = 'result-amount lose';
-    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' USDT
-Победитель получил: +' + prize + ' USDT';
+    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' USDT | Победитель получил: +' + prize + ' USDT';
   }
 
   // Обновляем статистику
