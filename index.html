@@ -140,21 +140,21 @@ body {
 #game { padding: 12px 12px 20px; gap: 10px; }
 
 .players-bar {
-  display: flex; align-items: stretch; gap: 8px;
+  display: flex; align-items: stretch; gap: 6px;
 }
 .pcard {
-  flex: 1; background: var(--surface); border-radius: 10px;
-  border: 0.5px solid var(--border); padding: 10px 12px;
+  flex: 1; min-width: 0; background: var(--surface); border-radius: 10px;
+  border: 0.5px solid var(--border); padding: 8px 10px;
   transition: border-color 0.2s, background 0.2s;
 }
 .pcard.myturn {
   border-color: var(--accent); background: var(--accent-dim);
 }
-.pcard-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.pcard-top { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; overflow: hidden; }
 .pchip { width: 20px; height: 20px; border-radius: 50%; border: 2px solid; flex-shrink: 0; }
 .pchip.white { background: var(--p1); border-color: var(--p1-border); }
 .pchip.black { background: var(--p2); border-color: var(--p2-border); }
-.pcard-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcard-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
 .pcard-timer {
   font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700;
   color: var(--text);
@@ -164,11 +164,11 @@ body {
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
 .stake-info {
-  text-align: center; font-size: 12px; color: var(--muted);
-  display: flex; align-items: center; justify-content: center; gap: 6px;
+  text-align: center; font-size: 11px; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 54px;
 }
 .stake-info .pot {
-  font-family: 'Space Mono', monospace; font-size: 14px; color: var(--accent);
+  font-family: 'Space Mono', monospace; font-size: 13px; color: var(--accent); font-weight: 700;
 }
 
 .board-wrap {
@@ -206,6 +206,17 @@ body {
 .piece.p1.king::after { color: #333; }
 .piece.p2.king::after { color: #1a3300; }
 
+.captured-bar {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0;
+}
+.captured-side {
+  display: flex; flex-wrap: wrap; gap: 3px; flex: 1; align-items: center;
+}
+.cap-piece {
+  width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid;
+}
+.cap-piece.p1 { background: var(--p1); border-color: var(--p1-border); }
+.cap-piece.p2 { background: var(--p2); border-color: var(--p2-border); }
 .status-bar {
   text-align: center; font-size: 13px; color: var(--muted);
   min-height: 18px; padding: 0 8px;
@@ -403,7 +414,7 @@ body {
         </div>
         <div class="pcard-timer" id="timer1">2:00</div>
       </div>
-      <div style="display:flex;align-items:center;padding:0 2px">
+      <div style="display:flex;align-items:center;padding:0;flex-shrink:0">
         <div class="stake-info">
           <span>Банк</span>
           <span class="pot" id="pot-label">20 USDT</span>
@@ -423,7 +434,11 @@ body {
       <div id="board"></div>
     </div>
 
-    <div class="status-bar" id="status-bar">Ход игрока 1</div>
+    <div class="captured-bar">
+      <div class="captured-side" id="p1-captured"></div>
+      <div class="status-bar" id="status-bar" style="margin:0;flex:1;text-align:center">Ваш ход</div>
+      <div class="captured-side" id="p2-captured" style="justify-content:flex-end"></div>
+    </div>
   </div>
 
   <!-- RESULT -->
@@ -452,6 +467,8 @@ let selectedStake = 5;
 let myPlayerIndex = null; // 1 или 2 (белые/чёрные)
 let myPot = 0;       // банк текущей игры (с сервера)
 let myStake = 0;     // моя ставка в текущей игре
+let capturedByP1 = 0; // сколько чёрных съел белый
+let capturedByP2 = 0; // сколько белых съел чёрный
 
 let board = [];
 let selected = null;
@@ -655,6 +672,9 @@ function startGame(msg) {
   selected = null;
   hints = [];
   times = [120, 120];
+  capturedByP1 = 0;
+  capturedByP2 = 0;
+  renderCaptured();
 
   isMyTurn = currentPlayer === myPlayerIndex;
 
@@ -665,6 +685,15 @@ function startGame(msg) {
 }
 
 function updateGameState(state) {
+  // Count captured pieces from board
+  let whites = 0, blacks = 0;
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const v = state.board[y][x];
+    if (v === 1 || v === 3) whites++;
+    if (v === 2 || v === 4) blacks++;
+  }
+  capturedByP1 = 12 - blacks; // белый съел чёрных
+  capturedByP2 = 12 - whites; // чёрный съел белых
   board = state.board;
   currentPlayer = state.currentPlayer;
   forcedFrom = state.forcedFrom || null;
@@ -672,7 +701,26 @@ function updateGameState(state) {
   selected = null;
   hints = [];
   renderBoard();
+  renderCaptured();
   updateStatusBar();
+}
+
+function renderCaptured() {
+  const p1el = document.getElementById('p1-captured');
+  const p2el = document.getElementById('p2-captured');
+  if (!p1el || !p2el) return;
+  p1el.innerHTML = '';
+  p2el.innerHTML = '';
+  for (let i = 0; i < capturedByP1; i++) {
+    const d = document.createElement('div');
+    d.className = 'cap-piece p2'; // белый съел чёрных — показываем чёрные
+    p1el.appendChild(d);
+  }
+  for (let i = 0; i < capturedByP2; i++) {
+    const d = document.createElement('div');
+    d.className = 'cap-piece p1'; // чёрный съел белых — показываем белые
+    p2el.appendChild(d);
+  }
 }
 
 // ─── GAME LOGIC (CLIENT-SIDE для подсветки) ───
