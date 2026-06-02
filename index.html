@@ -79,7 +79,7 @@ body {
 }
 
 .stake-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px;
 }
 .stake-btn {
   background: var(--surface); border: 0.5px solid var(--border);
@@ -93,6 +93,8 @@ body {
   background: var(--accent-dim); border-color: var(--accent); color: var(--accent);
 }
 .stake-label { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.stake-waiting { font-size: 9px; color: var(--accent); margin-top: 2px; min-height: 13px; }
+.stake-waiting.empty { color: transparent; }
 
 .custom-stake {
   background: var(--surface); border: 0.5px solid var(--border);
@@ -380,22 +382,32 @@ body {
       <button class="wallet-btn withdraw" onclick="onWithdraw()">⬆ Вывести</button>
     </div>
 
-    <div class="section-label">Выбери ставку</div>
-    <div class="stake-grid">
+    <div class="section-label">Выбери комнату</div>
+    <div class="stake-grid" id="stake-grid">
+      <div class="stake-btn" data-val="1" onclick="selectStake(1, this)">
+        <div>1</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-1">&nbsp;</div>
+      </div>
       <div class="stake-btn selected" data-val="5" onclick="selectStake(5, this)">
-        <div>5</div><div class="stake-label">USDT</div>
+        <div>5</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-5">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="10" onclick="selectStake(10, this)">
-        <div>10</div><div class="stake-label">USDT</div>
+        <div>10</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-10">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="25" onclick="selectStake(25, this)">
-        <div>25</div><div class="stake-label">USDT</div>
+        <div>25</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-25">&nbsp;</div>
       </div>
-    </div>
-    <div class="custom-stake" style="margin-bottom:24px">
-      <input type="number" id="custom-input" placeholder="Своя сумма" min="1" max="1000"
-        oninput="selectStake(+this.value, null)">
-      <span>USDT</span>
+      <div class="stake-btn" data-val="50" onclick="selectStake(50, this)">
+        <div>50</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-50">&nbsp;</div>
+      </div>
+      <div class="stake-btn" data-val="100" onclick="selectStake(100, this)">
+        <div>100</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-100">&nbsp;</div>
+      </div>
+      <div class="stake-btn" data-val="500" onclick="selectStake(500, this)">
+        <div>500</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-500">&nbsp;</div>
+      </div>
+      <div class="stake-btn" data-val="1000" onclick="selectStake(1000, this)">
+        <div>1K</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-1000">&nbsp;</div>
+      </div>
     </div>
 
     <button class="play-btn" id="play-btn" onclick="findMatch()">
@@ -553,8 +565,23 @@ function selectStake(val, btn) {
   document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
   if (btn) {
     btn.classList.add('selected');
-    document.getElementById('custom-input').value = '';
   }
+}
+
+function updateRoomCounts(rooms) {
+  if (!rooms) return;
+  [1, 5, 10, 25, 50, 100, 500, 1000].forEach(s => {
+    const el = document.getElementById('room-' + s);
+    if (!el) return;
+    const count = rooms[s] || 0;
+    if (count > 0) {
+      el.textContent = count + ' ждут';
+      el.className = 'stake-waiting';
+    } else {
+      el.textContent = '\u00a0';
+      el.className = 'stake-waiting empty';
+    }
+  });
 }
 
 // ─── WEBSOCKET ───
@@ -608,6 +635,23 @@ function handleMessage(msg) {
     endGame(msg.winner);
   }
 
+  if (msg.type === 'room_counts') {
+    updateRoomCounts(msg.rooms);
+  }
+
+  if (msg.type === 'welcome' && msg.rooms) {
+    updateRoomCounts(msg.rooms);
+  }
+
+  if (msg.type === 'hold_failed') {
+    showScreen('lobby');
+    toast('Недостаточно средств');
+  }
+
+  if (msg.type === 'search_cancelled') {
+    showScreen('lobby');
+  }
+
   if (msg.type === 'error') {
     toast('⚠ ' + msg.message);
   }
@@ -631,7 +675,9 @@ function findMatch() {
 }
 
 function cancelSearch() {
-  if (ws) ws.close();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'cancel_search' }));
+  }
   showScreen('lobby');
 }
 
