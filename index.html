@@ -532,9 +532,9 @@ async function init() {
     const data = await res.json();
     myPlayerId = data.id;
     myToken = data.token;
-    setConnStatus('connected');
     updateStats(data);
     loadHistory();
+    connectWS();
   } catch(e) {
     setConnStatus('disconnected');
     toast('Сервер недоступен. Проверь подключение.');
@@ -586,7 +586,13 @@ function updateRoomCounts(rooms) {
 
 // ─── WEBSOCKET ───
 function connectWS(onOpen) {
-  if (!myToken) { toast('Сначала авторизуйся'); return; }
+  if (!myToken) return;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    if (onOpen) onOpen();
+    return;
+  }
+  if (ws && ws.readyState === WebSocket.CONNECTING) return;
+
   setConnStatus('connecting');
   ws = new WebSocket(WS_URL + '?token=' + myToken);
 
@@ -602,11 +608,16 @@ function connectWS(onOpen) {
 
   ws.onclose = () => {
     setConnStatus('disconnected');
+    // Авто-реконнект через 3 секунды (если не в игре)
+    setTimeout(() => {
+      if (myToken && (!ws || ws.readyState === WebSocket.CLOSED)) {
+        connectWS();
+      }
+    }, 3000);
   };
 
   ws.onerror = () => {
     setConnStatus('disconnected');
-    toast('Ошибка соединения');
   };
 }
 
