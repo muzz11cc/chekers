@@ -384,10 +384,10 @@ body {
 
     <div class="section-label">Выбери комнату</div>
     <div class="stake-grid" id="stake-grid">
-      <div class="stake-btn" data-val="1" onclick="selectStake(1, this)">
-        <div>1</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-1">&nbsp;</div>
+      <div class="stake-btn selected" data-val="0" onclick="selectStake(0, this)">
+        <div>FREE</div><div class="stake-label">бесплатно</div><div class="stake-waiting empty" id="room-0">&nbsp;</div>
       </div>
-      <div class="stake-btn selected" data-val="5" onclick="selectStake(5, this)">
+      <div class="stake-btn" data-val="5" onclick="selectStake(5, this)">
         <div>5</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-5">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="10" onclick="selectStake(10, this)">
@@ -484,7 +484,7 @@ let ws = null;
 let myPlayerId = null;
 let myToken = null;
 let mySessionId = null;
-let selectedStake = 5;
+let selectedStake = 0;
 let myPlayerIndex = null; // 1 или 2 (белые/чёрные)
 let myPot = 0;       // банк текущей игры (с сервера)
 let myStake = 0;     // моя ставка в текущей игре
@@ -570,7 +570,7 @@ function selectStake(val, btn) {
 
 function updateRoomCounts(rooms) {
   if (!rooms) return;
-  [1, 5, 10, 25, 50, 100, 500, 1000].forEach(s => {
+  [0, 5, 10, 25, 50, 100, 500, 1000].forEach(s => {
     const el = document.getElementById('room-' + s);
     if (!el) return;
     const count = rooms[s] || 0;
@@ -659,7 +659,7 @@ function handleMessage(msg) {
 
 // ─── MATCHMAKING ───
 function findMatch() {
-  if (!selectedStake || selectedStake < 1) { toast('Выбери ставку'); return; }
+  if (selectedStake === null || selectedStake === undefined || selectedStake < 0) { toast('Выбери комнату'); return; }
   if (!myToken) { toast('Подключение...'); init().then(findMatch); return; }
 
   document.getElementById('search-stake').textContent = selectedStake + ' USDT';
