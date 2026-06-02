@@ -248,6 +248,9 @@ body {
 .hi-win { color: var(--accent); font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
 .hi-lose { color: var(--danger); font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
 .hi-draw { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 13px; }
+.hi-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.clear-history-btn { background: none; border: 0.5px solid var(--border); border-radius: 8px; padding: 8px 16px; color: var(--danger); font-size: 12px; cursor: pointer; margin-top: 6px; width: 100%; }
+.clear-history-btn:active { opacity: 0.6; }
 
 /* ─── STATS ─── */
 .stats-row {
@@ -369,6 +372,7 @@ body {
         <span>История игр</span><span id="history-arrow">▼</span>
       </button>
       <div id="history-list" style="display:none;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto"></div>
+      <button id="clear-history-btn" class="clear-history-btn" style="display:none" onclick="clearHistory()">Очистить историю</button>
     </div>
 
     <div class="wallet-row">
@@ -1006,24 +1010,24 @@ async function loadHistory() {
     });
     const games = await res.json();
     const list = document.getElementById('history-list');
+    const clearBtn = document.getElementById('clear-history-btn');
     list.innerHTML = '';
     if (!Array.isArray(games) || games.length === 0) {
       list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:16px">Вы ещё не завершили ни одной игры</div>';
+      clearBtn.style.display = 'none';
       return;
     }
+    clearBtn.style.display = 'block';
     games.forEach(g => {
       const isWin = g.winner === myPlayerId;
       const isDraw = !g.winner;
 
-      // Определяем кто я — белые (players[0]) или чёрные (players[1])
       const myIsWhite = (g.players || [])[0] === myPlayerId;
 
-      // Имя соперника из JOIN (white_username / black_username)
       const oppName = myIsWhite
         ? (g.black_username || g.players?.[1]?.replace('tg_', 'id:') || '?')
         : (g.white_username || g.players?.[0]?.replace('tg_', 'id:') || '?');
 
-      // Ставки
       const whiteStake = parseFloat(g.white_stake || 0);
       const blackStake = parseFloat(g.black_stake || 0);
       const pot = whiteStake + blackStake;
@@ -1033,14 +1037,40 @@ async function loadHistory() {
       const resultText = isDraw ? '= Ничья' : isWin ? '+' + payout + ' USDT' : '-' + myStake + ' USDT';
       const resultClass = isDraw ? 'hi-draw' : isWin ? 'hi-win' : 'hi-lose';
 
+      // Дата
+      let dateStr = '';
+      if (g.created_at) {
+        const d = new Date(g.created_at);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        dateStr = dd + '.' + mm + ' ' + hh + ':' + min;
+      }
+
       const div = document.createElement('div');
       div.className = 'history-item';
-      div.innerHTML = `<div><div style="font-size:13px;font-weight:500">vs ${oppName}</div><div class="hi-vs">Банк: ${pot > 0 ? pot + ' USDT' : '—'}</div></div><div class="${resultClass}">${resultText}</div>`;
+      div.innerHTML = `<div><div style="font-size:13px;font-weight:500">vs ${oppName}</div><div class="hi-vs">Банк: ${pot > 0 ? pot + ' USDT' : '—'}</div><div class="hi-date">${dateStr}</div></div><div class="${resultClass}">${resultText}</div>`;
       list.appendChild(div);
     });
   } catch(e) {
     console.error('History load error:', e);
     document.getElementById('history-section').style.display = 'none';
+  }
+}
+
+async function clearHistory() {
+  if (!myPlayerId) return;
+  if (!confirm('Очистить всю историю игр?')) return;
+  try {
+    await fetch(HTTP_URL + '/history/' + myPlayerId, {
+      method: 'DELETE',
+      headers: {'ngrok-skip-browser-warning': 'true'}
+    });
+    document.getElementById('history-list').innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:16px">Вы ещё не завершили ни одной игры</div>';
+    document.getElementById('clear-history-btn').style.display = 'none';
+  } catch(e) {
+    console.error('Clear history error:', e);
   }
 }
 
