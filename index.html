@@ -535,6 +535,12 @@ async function init() {
     updateStats(data);
     loadHistory();
     connectWS();
+    // Опрашиваем комнаты каждые 3 секунды
+    setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'get_rooms' }));
+      }
+    }, 3000);
   } catch(e) {
     setConnStatus('disconnected');
     toast('Сервер недоступен. Проверь подключение.');
@@ -688,6 +694,12 @@ function findMatch() {
 function cancelSearch() {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'cancel_search' }));
+    // Запрашиваем актуальные счётчики
+    setTimeout(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'get_rooms' }));
+      }
+    }, 300);
   }
   showScreen('lobby');
 }
