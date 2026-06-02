@@ -409,6 +409,12 @@ body {
         <div>1K</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-1000">&nbsp;</div>
       </div>
     </div>
+    <div style="display:flex;gap:6px;margin-bottom:16px;align-items:center">
+      <input type="number" id="custom-input" placeholder="Своя сумма" min="1" max="100000"
+        style="flex:1;background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:Space Mono,monospace;font-size:14px;color:var(--text);outline:none"
+        oninput="selectCustomStake(+this.value)">
+      <span style="font-size:13px;color:var(--muted)">USDT</span>
+    </div>
 
     <button class="play-btn" id="play-btn" onclick="findMatch()">
       НАЙТИ СОПЕРНИКА →
@@ -567,10 +573,18 @@ function toast(msg, dur=3000) {
 }
 
 function selectStake(val, btn) {
-  selectedStake = val || selectedStake;
+  selectedStake = (val !== undefined && val !== null) ? val : selectedStake;
   document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
   if (btn) {
     btn.classList.add('selected');
+    document.getElementById('custom-input').value = '';
+  }
+}
+
+function selectCustomStake(val) {
+  if (val > 0) {
+    selectedStake = val;
+    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
   }
 }
 
