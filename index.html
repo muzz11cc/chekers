@@ -6,8 +6,8 @@
 <title>Checkers — Stake & Play</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/tabler-icons.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap');
 
 :root {
   --bg: #0c0c0f;
@@ -32,7 +32,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', sans-serif; min-height: 100vh; overflow-x: hidden; }
+body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; min-height: 100vh; overflow-x: hidden; }
 #app { max-width: 420px; margin: 0 auto; }
 
 .screen { display: none; flex-direction: column; min-height: 100vh; padding: 16px 14px 24px; }
@@ -64,9 +64,9 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', sa
 .history-item { background: var(--s1); border: 0.5px solid var(--bdr); border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; }
 .history-item .hi-vs { font-size: 11px; color: var(--tx3); margin-top: 2px; }
 .hi-date { font-size: 10px; color: var(--tx3); margin-top: 2px; }
-.hi-win { color: var(--teal); font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; }
-.hi-lose { color: var(--danger); font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; }
-.hi-draw { color: var(--tx2); font-family: 'Space Grotesk', sans-serif; font-size: 13px; }
+.hi-win { color: var(--teal); font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 600; }
+.hi-lose { color: var(--danger); font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; font-weight: 600; }
+.hi-draw { color: var(--tx2); font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 13px; }
 .clear-history-btn { background: none; border: 0.5px solid var(--bdr); border-radius: 8px; padding: 8px 16px; color: var(--danger); font-family: inherit; font-size: 12px; cursor: pointer; margin-top: 6px; width: 100%; }
 
 /* ─── WALLET ─── */
@@ -88,7 +88,7 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', sa
 .stake-waiting.empty { color: transparent; }
 
 .custom-row { display: flex; gap: 6px; margin-bottom: 16px; align-items: center; }
-.custom-row input { flex: 1; background: var(--s1); border: 0.5px solid var(--bdr); border-radius: 10px; padding: 11px 14px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; color: var(--tx); outline: none; }
+.custom-row input { flex: 1; background: var(--s1); border: 0.5px solid var(--bdr); border-radius: 10px; padding: 11px 14px; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; color: var(--tx); outline: none; }
 .custom-row input:focus { border-color: var(--gold); }
 .custom-row input::placeholder { color: var(--tx3); }
 .custom-row span { font-size: 12px; color: var(--tx3); }
@@ -178,7 +178,7 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', sa
 .result-btns { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px; }
 
 /* ─── CONNECTION ─── */
-#conn-status { position: fixed; top: 8px; right: 12px; font-size: 10px; padding: 3px 10px; border-radius: 20px; z-index: 100; font-family: 'Space Grotesk', sans-serif; }
+#conn-status { position: fixed; top: 8px; right: 12px; font-size: 10px; padding: 3px 10px; border-radius: 20px; z-index: 100; font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif; }
 #conn-status.connected { background: rgba(61,186,162,0.12); color: var(--teal); }
 #conn-status.disconnected { background: var(--danger-dim); color: var(--danger); }
 #conn-status.connecting { background: rgba(139,139,154,0.1); color: var(--tx2); }
