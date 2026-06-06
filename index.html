@@ -249,16 +249,13 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
     <!-- TON кошелёк: показывается после подключения -->
     <div class="ton-card" id="ton-card">
       <div class="ton-card-top">
-        <span class="ton-label"><i class="ti ti-diamond" style="font-size:10px"></i> TON Кошелёк · Testnet</span>
+        <span class="ton-label"><i class="ti ti-diamond" style="font-size:10px"></i> TON Кошелёк</span>
         <button class="ton-disconnect" onclick="disconnectWallet()">Отключить</button>
       </div>
       <div class="ton-addr" id="ton-addr">—</div>
       <div class="ton-bal-row">
         <span class="ton-bal" id="ton-bal">0</span>
         <span class="ton-bal-cur">TON</span>
-        <span style="color:var(--tx3);margin:0 4px">·</span>
-        <span class="ton-bal" id="usdt-bal" style="color:var(--teal)">0</span>
-        <span class="ton-bal-cur">USDT</span>
       </div>
     </div>
 
@@ -273,31 +270,31 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
       <div class="stake-btn selected" data-val="0" onclick="selectStake(0, this)">
         <div class="room-val">Free</div><div class="stake-label">бесплатно</div><div class="stake-waiting empty" id="room-0">&nbsp;</div>
       </div>
+      <div class="stake-btn" data-val="0.1" onclick="selectStake(0.1, this)">
+        <div class="room-val">0.1</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-0.1">&nbsp;</div>
+      </div>
+      <div class="stake-btn" data-val="0.5" onclick="selectStake(0.5, this)">
+        <div class="room-val">0.5</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-0.5">&nbsp;</div>
+      </div>
+      <div class="stake-btn" data-val="1" onclick="selectStake(1, this)">
+        <div class="room-val">1</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-1">&nbsp;</div>
+      </div>
       <div class="stake-btn" data-val="5" onclick="selectStake(5, this)">
-        <div class="room-val">5</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-5">&nbsp;</div>
+        <div class="room-val">5</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-5">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="10" onclick="selectStake(10, this)">
-        <div class="room-val">10</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-10">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="25" onclick="selectStake(25, this)">
-        <div class="room-val">25</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-25">&nbsp;</div>
+        <div class="room-val">10</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-10">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="50" onclick="selectStake(50, this)">
-        <div class="room-val">50</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-50">&nbsp;</div>
+        <div class="room-val">50</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-50">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="100" onclick="selectStake(100, this)">
-        <div class="room-val">100</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-100">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="500" onclick="selectStake(500, this)">
-        <div class="room-val">500</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-500">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="1000" onclick="selectStake(1000, this)">
-        <div class="room-val">1K</div><div class="stake-label">USDT</div><div class="stake-waiting empty" id="room-1000">&nbsp;</div>
+        <div class="room-val">100</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-100">&nbsp;</div>
       </div>
     </div>
     <div class="custom-row">
-      <input type="number" id="custom-input" placeholder="Своя сумма" min="1" max="100000" oninput="selectCustomStake(+this.value)">
-      <span>USDT</span>
+      <input type="number" id="custom-input" placeholder="Своя сумма" min="0.1" max="10000" step="0.1" oninput="selectCustomStake(+this.value)">
+      <span>TON</span>
     </div>
 
     <button class="play-btn" id="play-btn" onclick="findMatch()">
@@ -324,7 +321,7 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
         <div class="pot-inner">
           <i class="ti ti-trophy" aria-hidden="true"></i>
           <div class="pot-val" id="pot-label">10</div>
-          <div class="pot-cur">USDT</div>
+          <div class="pot-cur">TON</div>
         </div>
       </div>
       <div class="pcard" id="pcard2">
@@ -348,7 +345,7 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
   <div id="result" class="screen">
     <div class="result-icon-wrap win" id="result-icon-wrap"><i class="ti ti-trophy" id="result-icon-i" aria-hidden="true"></i></div>
     <div class="result-title win" id="result-title">Победа!</div>
-    <div class="result-amount win" id="result-amount">+17 USDT</div>
+    <div class="result-amount win" id="result-amount">+17 TON</div>
     <div class="result-sub" id="result-sub">Комиссия: 3%<br>Зачислено на баланс</div>
     <div class="result-btns">
       <button class="btn-main" onclick="rematch()"><i class="ti ti-refresh" style="font-size:16px;vertical-align:-2px" aria-hidden="true"></i> Реванш</button>
@@ -486,7 +483,7 @@ function selectCustomStake(val) {
 
 function updateRoomCounts(rooms) {
   if (!rooms) return;
-  [0, 5, 10, 25, 50, 100, 500, 1000].forEach(s => {
+  [0, 0.1, 0.5, 1, 5, 10, 50, 100].forEach(s => {
     const el = document.getElementById('room-' + s);
     if (!el) return;
     const count = rooms[s] || 0;
@@ -589,7 +586,7 @@ function findMatch() {
   if (selectedStake === null || selectedStake === undefined || selectedStake < 0) { toast('Выбери комнату'); return; }
   if (!myToken) { toast('Подключение...'); init().then(findMatch); return; }
 
-  document.getElementById('search-stake').textContent = selectedStake === 0 ? 'Free' : selectedStake + ' USDT';
+  document.getElementById('search-stake').textContent = selectedStake === 0 ? 'Free' : selectedStake + ' TON';
 
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     connectWS(() => {
@@ -937,17 +934,17 @@ function endGame(winnerId) {
   const amountEl = document.getElementById('result-amount');
   amountEl.style.cssText = ''; // сбрасываем inline стили
   if (isWinner) {
-    amountEl.textContent = '+' + prize + ' USDT';
+    amountEl.textContent = '+' + prize + ' TON';
     amountEl.className = 'result-amount win';
-    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' USDT) Банк: ' + pot + ' USDT';
+    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' TON) · Банк: ' + pot + ' TON';
   } else if (isDraw) {
-    amountEl.textContent = 'Возврат: +' + loss + ' USDT';
+    amountEl.textContent = 'Возврат: +' + loss + ' TON';
     amountEl.className = 'result-amount draw';
     document.getElementById('result-sub').textContent = 'Ничья — ставки возвращены';
   } else {
-    amountEl.textContent = '-' + loss + ' USDT';
+    amountEl.textContent = '-' + loss + ' TON';
     amountEl.className = 'result-amount lose';
-    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' USDT'
+    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' TON'
   }
 
   // Обновляем статистику с сервера
@@ -1011,7 +1008,7 @@ async function loadHistory() {
       const myStake = myIsWhite ? whiteStake : blackStake;
       const payout = (pot * 0.97).toFixed(2);
 
-      const resultText = isDraw ? '= Ничья' : isWin ? '+' + payout + ' USDT' : '-' + myStake + ' USDT';
+      const resultText = isDraw ? '= Ничья' : isWin ? '+' + payout + ' TON' : '-' + myStake + ' TON';
       const resultClass = isDraw ? 'hi-draw' : isWin ? 'hi-win' : 'hi-lose';
 
       // Дата
@@ -1027,7 +1024,7 @@ async function loadHistory() {
 
       const div = document.createElement('div');
       div.className = 'history-item';
-      div.innerHTML = `<div><div style="font-size:13px;font-weight:500">vs ${oppName}</div><div class="hi-vs">Банк: ${pot > 0 ? pot + ' USDT' : '—'}</div><div class="hi-date">${dateStr}</div></div><div class="${resultClass}">${resultText}</div>`;
+      div.innerHTML = `<div><div style="font-size:13px;font-weight:500">vs ${oppName}</div><div class="hi-vs">Банк: ${pot > 0 ? pot + ' TON' : '—'}</div><div class="hi-date">${dateStr}</div></div><div class="${resultClass}">${resultText}</div>`;
       list.appendChild(div);
     });
   } catch(e) {
@@ -1108,7 +1105,7 @@ const USDT_MASTER_TESTNET = 'kQBqSpvo4S87mkbdd6HZIBRDSpOE-1IKNtVo28VNfNPFBIwb';
 async function fetchTonBalance(address) {
   try {
     // 1. Баланс TON
-    const tonUrl = `https://testnet.toncenter.com/api/v2/getAddressBalance?address=${encodeURIComponent(address)}`;
+    const tonUrl = `https://toncenter.com/api/v2/getAddressBalance?address=${encodeURIComponent(address)}`;
     const tonRes = await fetch(tonUrl);
     const tonData = await tonRes.json();
     if (tonData.ok) {
@@ -1168,7 +1165,7 @@ function rematch() {
   clearInterval(timerInterval);
   const stake = myStake > 0 ? myStake : selectedStake;
   showScreen('searching');
-  document.getElementById('search-stake').textContent = stake > 0 ? stake + ' USDT' : 'Free';
+  document.getElementById('search-stake').textContent = stake > 0 ? stake + ' TON' : 'Free';
 
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     connectWS(() => {
