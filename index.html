@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Checkers — Stake & Play</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/tabler-icons.min.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap">
 <style>
@@ -74,6 +75,19 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
 .wallet-btn { flex: 1; padding: 12px; border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .wallet-btn.deposit { background: var(--gold-dim); border: 0.5px solid rgba(212,168,83,0.3); color: var(--gold); }
 .wallet-btn.withdraw { background: var(--s1); border: 0.5px solid var(--bdr); color: var(--tx2); }
+
+/* ─── TON WALLET CARD ─── */
+.ton-card { background: var(--s1); border: 0.5px solid var(--bdr); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; display: none; }
+.ton-card.visible { display: block; }
+.ton-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.ton-label { font-size: 10px; letter-spacing: 1px; color: var(--tx3); text-transform: uppercase; }
+.ton-disconnect { background: none; border: 0.5px solid var(--bdr); border-radius: 6px; padding: 4px 10px; font-family: inherit; font-size: 11px; color: var(--tx3); cursor: pointer; }
+.ton-disconnect:hover { color: var(--danger); border-color: var(--danger); }
+.ton-addr { font-size: 13px; color: var(--tx2); font-family: monospace; margin-bottom: 6px; word-break: break-all; }
+.ton-bal-row { display: flex; align-items: baseline; gap: 6px; }
+.ton-bal { font-size: 20px; font-weight: 600; color: #0098ea; }
+.ton-bal-cur { font-size: 12px; color: var(--tx3); }
+.ton-connecting { font-size: 13px; color: var(--tx2); text-align: center; padding: 4px 0; }
 
 /* ─── ROOMS ─── */
 .section-l { font-size: 10px; letter-spacing: 1.5px; color: var(--tx3); text-transform: uppercase; margin-bottom: 8px; padding-left: 2px; }
@@ -230,6 +244,19 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
       </button>
       <div id="history-list" style="display:none;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto"></div>
       <button id="clear-history-btn" class="clear-history-btn" style="display:none" onclick="clearHistory()">Очистить историю</button>
+    </div>
+
+    <!-- TON кошелёк: показывается после подключения -->
+    <div class="ton-card" id="ton-card">
+      <div class="ton-card-top">
+        <span class="ton-label"><i class="ti ti-diamond" style="font-size:10px"></i> TON Кошелёк</span>
+        <button class="ton-disconnect" onclick="disconnectWallet()">Отключить</button>
+      </div>
+      <div class="ton-addr" id="ton-addr">—</div>
+      <div class="ton-bal-row">
+        <span class="ton-bal" id="ton-bal">0</span>
+        <span class="ton-bal-cur">TON</span>
+      </div>
     </div>
 
     <div class="wallet-row">
@@ -1021,12 +1048,91 @@ async function clearHistory() {
   }
 }
 
-function onConnectWallet() {
-  toast('TON Connect будет подключён в следующем обновлении');
-  // TODO: Интеграция TON Connect SDK
-  // import TonConnect from '@tonconnect/sdk';
-  // const connector = new TonConnect({ manifestUrl: '...' });
-  // connector.connect([{ jsBridgeKey: 'tonkeeper' }]);
+// ─── TON CONNECT ───
+// Манифест описывает приложение для кошелька (Tonkeeper покажет его пользователю)
+const TON_MANIFEST_URL = HTTP_URL + '/tonconnect-manifest.json';
+
+let tonConnectUI = null;
+let walletAddress = null;
+
+function initTonConnect() {
+  try {
+    tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: TON_MANIFEST_URL,
+      // Не рендерим встроенную кнопку — используем свою
+      buttonRootId: null,
+    });
+
+    // Слушаем изменения статуса кошелька
+    tonConnectUI.onStatusChange(wallet => {
+      if (wallet) {
+        walletAddress = wallet.account.address;
+        onWalletConnected(wallet);
+      } else {
+        walletAddress = null;
+        onWalletDisconnected();
+      }
+    });
+  } catch(e) {
+    console.error('TON Connect init error:', e);
+  }
+}
+
+function onWalletConnected(wallet) {
+  const addr = wallet.account.address;
+  // Преобразуем raw адрес в читаемый формат (первые 6 + ... + последние 4)
+  const short = addr.slice(0, 6) + '...' + addr.slice(-4);
+  document.getElementById('ton-addr').textContent = short;
+  document.getElementById('ton-card').classList.add('visible');
+  document.getElementById('wallet-connect-btn').style.display = 'none';
+
+  // Загружаем баланс
+  fetchTonBalance(addr);
+  toast('Кошелёк подключён');
+}
+
+function onWalletDisconnected() {
+  document.getElementById('ton-card').classList.remove('visible');
+  document.getElementById('wallet-connect-btn').style.display = '';
+  document.getElementById('ton-bal').textContent = '0';
+  document.getElementById('ton-addr').textContent = '—';
+}
+
+async function fetchTonBalance(address) {
+  try {
+    // Используем публичный TON testnet API
+    const url = `https://testnet.toncenter.com/api/v2/getAddressBalance?address=${address}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.ok) {
+      const ton = (parseInt(data.result) / 1e9).toFixed(2);
+      document.getElementById('ton-bal').textContent = ton;
+    }
+  } catch(e) {
+    console.error('Balance fetch error:', e);
+  }
+}
+
+async function onConnectWallet() {
+  if (!tonConnectUI) {
+    toast('TON Connect не инициализирован');
+    return;
+  }
+  try {
+    await tonConnectUI.openModal();
+  } catch(e) {
+    console.error('Connect error:', e);
+    toast('Ошибка подключения кошелька');
+  }
+}
+
+async function disconnectWallet() {
+  if (!tonConnectUI) return;
+  try {
+    await tonConnectUI.disconnect();
+  } catch(e) {
+    console.error('Disconnect error:', e);
+  }
 }
 
 function rematch() {
@@ -1045,6 +1151,7 @@ function rematch() {
   }
 }
 
+initTonConnect();
 init();
 
 </script>
