@@ -228,7 +228,7 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
         <div class="uname" id="lobby-name">Loading...</div>
         <div class="uid" id="lobby-id"></div>
       </div>
-      <div class="ubal" id="lobby-bal">0 TON</div>
+      <div class="ubal" id="lobby-bal">0 USDT</div>
     </div>
 
     <div class="stat-row">
@@ -539,6 +539,10 @@ function handleMessage(msg) {
     showScreen('searching');
   }
 
+  if (msg.type === 'deposit_required') {
+    handleDepositRequired(msg);
+  }
+
   if (msg.type === 'match_found') {
     mySessionId = msg.sessionId;
     const players = msg.state ? [msg.state] : [];
@@ -618,6 +622,42 @@ function goLobby() {
   showScreen('lobby');
 }
 
+// ─── TON DEPOSIT ───
+function handleDepositRequired(msg) {
+  if (!tonConnectUI || !walletAddress) {
+    toast('Подключи TON кошелёк для игры на ставку');
+    return;
+  }
+
+  const stakeTon = msg.stakeTon;
+  const contractAddr = msg.contractAddress;
+  const stakeNano = BigInt(msg.stakeNano);
+
+  // Показываем попап подтверждения
+  toast('Подтверди ставку ' + stakeTon + ' TON в кошельке', 6000);
+
+  // Отправляем транзакцию через TON Connect
+  tonConnectUI.sendTransaction({
+    validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
+    messages: [
+      {
+        address: contractAddr,
+        amount: msg.stakeNano, // в нанотонах
+        payload: btoa(String.fromCharCode(
+          // JoinGame message opcode = 0xaaa12027
+          0xaa, 0xa1, 0x20, 0x27,
+          0x00, 0x00, 0x00, 0x00, // queryId
+        )),
+      },
+    ],
+  }).then(() => {
+    toast('Ставка внесена! Игра началась.');
+  }).catch(e => {
+    console.error('TON transaction error:', e);
+    toast('Ошибка транзакции: ' + (e.message || 'отменено'));
+  });
+}
+
 // ─── GAME START ───
 function startGame(msg) {
   const state = msg.state;
@@ -644,7 +684,7 @@ function startGame(msg) {
   }
   myPot = msg.pot || selectedStake * 2;
   myStake = msg.myStake || selectedStake;
-  document.getElementById('pot-label').textContent = myPot + ' TON';
+  document.getElementById('pot-label').textContent = myPot + ' USDT';
 
   board = state.board;
   currentPlayer = state.currentPlayer;
@@ -959,7 +999,7 @@ function updateStats(data) {
   document.getElementById('stat-draws').textContent = data ? (data.draws || 0) : '0';
   document.getElementById('stat-games').textContent = data ? (data.games || 0) : '0';
   if (data && data.balance !== undefined) {
-    document.getElementById('lobby-bal').textContent = parseFloat(data.balance).toFixed(2) + ' TON';
+    document.getElementById('lobby-bal').textContent = parseFloat(data.balance).toFixed(2) + ' USDT';
   }
 }
 
@@ -1089,23 +1129,58 @@ function onWalletConnected(wallet) {
   // Загружаем баланс
   fetchTonBalance(addr);
   toast('Кошелёк подключён');
+
+  // Сохраняем адрес на сервере
+  if (myPlayerId) {
+    fetch(HTTP_URL + '/ton-address', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},
+      body: JSON.stringify({ playerId: myPlayerId, tonAddress: addr }),
+    }).catch(console.error);
+  }
 }
 
 function onWalletDisconnected() {
   document.getElementById('ton-card').classList.remove('visible');
   document.getElementById('wallet-connect-btn').style.display = '';
   document.getElementById('ton-bal').textContent = '0';
+  document.getElementById('usdt-bal').textContent = '0';
   document.getElementById('ton-addr').textContent = '—';
 }
 
+// USDT jetton master на testnet
+const USDT_MASTER_TESTNET = 'kQBqSpvo4S87mkbdd6HZIBRDSpOE-1IKNtVo28VNfNPFBIwb';
+
 async function fetchTonBalance(address) {
   try {
-    const url = `https://toncenter.com/api/v2/getAddressBalance?address=${encodeURIComponent(address)}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.ok) {
-      const ton = (parseInt(data.result) / 1e9).toFixed(2);
+    // 1. Баланс TON
+    const tonUrl = `https://toncenter.com/api/v2/getAddressBalance?address=${encodeURIComponent(address)}`;
+    const tonRes = await fetch(tonUrl);
+    const tonData = await tonRes.json();
+    if (tonData.ok) {
+      const ton = (parseInt(tonData.result) / 1e9).toFixed(2);
       document.getElementById('ton-bal').textContent = ton;
+    }
+
+    // 2. Баланс USDT (jetton)
+    // Сначала получаем адрес jetton-кошелька для данного владельца
+    const jettonUrl = `https://testnet.toncenter.com/api/v2/runGetMethod?address=${encodeURIComponent(USDT_MASTER_TESTNET)}&method=get_wallet_address&stack=[["tvm.Slice","${address}"]]`;
+    const jettonRes = await fetch(jettonUrl);
+    const jettonData = await jettonRes.json();
+
+    if (jettonData.ok && jettonData.result?.stack?.[0]?.[1]) {
+      const jettonWalletAddr = jettonData.result.stack[0][1].object?.data?.b64;
+      if (jettonWalletAddr) {
+        // Получаем данные jetton-кошелька
+        const balUrl = `https://testnet.toncenter.com/api/v2/runGetMethod?address=${encodeURIComponent(jettonWalletAddr)}&method=get_wallet_data&stack=[]`;
+        const balRes = await fetch(balUrl);
+        const balData = await balRes.json();
+        if (balData.ok && balData.result?.stack?.[0]?.[1]) {
+          const raw = balData.result.stack[0][1];
+          const usdt = (parseInt(raw.num || raw, 16) / 1e6).toFixed(2);
+          document.getElementById('usdt-bal').textContent = usdt;
+        }
+      }
     }
   } catch(e) {
     console.error('Balance fetch error:', e);
