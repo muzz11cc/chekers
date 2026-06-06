@@ -249,13 +249,16 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
     <!-- TON кошелёк: показывается после подключения -->
     <div class="ton-card" id="ton-card">
       <div class="ton-card-top">
-        <span class="ton-label"><i class="ti ti-diamond" style="font-size:10px"></i> TON Кошелёк</span>
+        <span class="ton-label"><i class="ti ti-diamond" style="font-size:10px"></i> TON Кошелёк · Testnet</span>
         <button class="ton-disconnect" onclick="disconnectWallet()">Отключить</button>
       </div>
       <div class="ton-addr" id="ton-addr">—</div>
       <div class="ton-bal-row">
         <span class="ton-bal" id="ton-bal">0</span>
         <span class="ton-bal-cur">TON</span>
+        <span style="color:var(--tx3);margin:0 4px">·</span>
+        <span class="ton-bal" id="usdt-bal" style="color:var(--teal)">0</span>
+        <span class="ton-bal-cur">USDT</span>
       </div>
     </div>
 
@@ -1095,18 +1098,43 @@ function onWalletDisconnected() {
   document.getElementById('ton-card').classList.remove('visible');
   document.getElementById('wallet-connect-btn').style.display = '';
   document.getElementById('ton-bal').textContent = '0';
+  document.getElementById('usdt-bal').textContent = '0';
   document.getElementById('ton-addr').textContent = '—';
 }
 
+// USDT jetton master на testnet
+const USDT_MASTER_TESTNET = 'kQBqSpvo4S87mkbdd6HZIBRDSpOE-1IKNtVo28VNfNPFBIwb';
+
 async function fetchTonBalance(address) {
   try {
-    // Используем публичный TON testnet API
-    const url = `https://testnet.toncenter.com/api/v2/getAddressBalance?address=${address}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.ok) {
-      const ton = (parseInt(data.result) / 1e9).toFixed(2);
+    // 1. Баланс TON
+    const tonUrl = `https://testnet.toncenter.com/api/v2/getAddressBalance?address=${encodeURIComponent(address)}`;
+    const tonRes = await fetch(tonUrl);
+    const tonData = await tonRes.json();
+    if (tonData.ok) {
+      const ton = (parseInt(tonData.result) / 1e9).toFixed(2);
       document.getElementById('ton-bal').textContent = ton;
+    }
+
+    // 2. Баланс USDT (jetton)
+    // Сначала получаем адрес jetton-кошелька для данного владельца
+    const jettonUrl = `https://testnet.toncenter.com/api/v2/runGetMethod?address=${encodeURIComponent(USDT_MASTER_TESTNET)}&method=get_wallet_address&stack=[["tvm.Slice","${address}"]]`;
+    const jettonRes = await fetch(jettonUrl);
+    const jettonData = await jettonRes.json();
+
+    if (jettonData.ok && jettonData.result?.stack?.[0]?.[1]) {
+      const jettonWalletAddr = jettonData.result.stack[0][1].object?.data?.b64;
+      if (jettonWalletAddr) {
+        // Получаем данные jetton-кошелька
+        const balUrl = `https://testnet.toncenter.com/api/v2/runGetMethod?address=${encodeURIComponent(jettonWalletAddr)}&method=get_wallet_data&stack=[]`;
+        const balRes = await fetch(balUrl);
+        const balData = await balRes.json();
+        if (balData.ok && balData.result?.stack?.[0]?.[1]) {
+          const raw = balData.result.stack[0][1];
+          const usdt = (parseInt(raw.num || raw, 16) / 1e6).toFixed(2);
+          document.getElementById('usdt-bal').textContent = usdt;
+        }
+      }
     }
   } catch(e) {
     console.error('Balance fetch error:', e);
