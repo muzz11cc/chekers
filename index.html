@@ -1119,15 +1119,18 @@ function initTonConnect() {
 }
 
 function onWalletConnected(wallet) {
-  const addr = wallet.account.address;
-  // Преобразуем raw адрес в читаемый формат (первые 6 + ... + последние 4)
-  const short = addr.slice(0, 6) + '...' + addr.slice(-4);
+  const rawAddr = wallet.account.address;
+  // TON Connect возвращает raw адрес (0:abc...), конвертируем в friendly (UQ...)
+  const friendlyAddr = wallet.account.address;
+  walletAddress = friendlyAddr;
+
+  const short = friendlyAddr.slice(0, 8) + '...' + friendlyAddr.slice(-4);
   document.getElementById('ton-addr').textContent = short;
   document.getElementById('ton-card').classList.add('visible');
   document.getElementById('wallet-connect-btn').style.display = 'none';
 
   // Загружаем баланс
-  fetchTonBalance(addr);
+  fetchTonBalance(friendlyAddr);
   toast('Кошелёк подключён');
 
   // Сохраняем адрес на сервере
@@ -1135,8 +1138,11 @@ function onWalletConnected(wallet) {
     fetch(HTTP_URL + '/ton-address', {
       method: 'POST',
       headers: {'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},
-      body: JSON.stringify({ playerId: myPlayerId, tonAddress: addr }),
-    }).catch(console.error);
+      body: JSON.stringify({ playerId: myPlayerId, tonAddress: friendlyAddr }),
+    })
+    .then(r => r.json())
+    .then(d => console.log('[TON] Address saved:', d))
+    .catch(e => console.error('[TON] Address save error:', e));
   }
 }
 
@@ -1144,8 +1150,8 @@ function onWalletDisconnected() {
   document.getElementById('ton-card').classList.remove('visible');
   document.getElementById('wallet-connect-btn').style.display = '';
   document.getElementById('ton-bal').textContent = '0';
-  document.getElementById('usdt-bal').textContent = '0';
   document.getElementById('ton-addr').textContent = '—';
+  walletAddress = null;
 }
 
 // USDT jetton master на testnet
