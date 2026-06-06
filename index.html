@@ -149,9 +149,9 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
 
 .captured-bar { display: flex; align-items: center; padding: 4px 8px; min-height: 28px; }
 .captured-side { display: flex; gap: 2px; flex: 1; }
-.captured-dot { width: 10px; height: 10px; border-radius: 50%; opacity: 0.5; }
-.captured-dot.w { background: var(--p1-color); }
-.captured-dot.b { background: var(--p2-color); }
+.captured-dot, .cap-piece { width: 10px; height: 10px; border-radius: 50%; opacity: 0.5; }
+.captured-dot.w, .cap-piece.p1 { background: var(--p1-color); }
+.captured-dot.b, .cap-piece.p2 { background: var(--p2-color); }
 
 .status-bar { text-align: center; font-size: 12px; color: var(--tx2); min-height: 16px; }
 .status-bar.warn { color: var(--danger); }
@@ -568,16 +568,6 @@ function cancelSearch() {
   showScreen('lobby');
 }
 
-function rematch() {
-  gameOver = true;
-  clearInterval(timerInterval);
-  showScreen('lobby');
-  // Автоматически ищем игру с той же ставкой
-  setTimeout(() => {
-    findMatch();
-  }, 300);
-}
-
 function goLobby() {
   gameOver = true;
   clearInterval(timerInterval);
@@ -605,13 +595,9 @@ function startGame(msg) {
   if (myPlayerIndex === 1) {
     document.getElementById('p1name').textContent = myName + ' (ты)';
     document.getElementById('p2name').textContent = oppName;
-    document.getElementById('p1avatar').textContent = myInitial;
-    document.getElementById('p2avatar').textContent = oppInitial;
   } else {
     document.getElementById('p1name').textContent = oppName;
     document.getElementById('p2name').textContent = myName + ' (ты)';
-    document.getElementById('p1avatar').textContent = oppInitial;
-    document.getElementById('p2avatar').textContent = myInitial;
   }
   myPot = msg.pot || selectedStake * 2;
   myStake = msg.myStake || selectedStake;
@@ -919,23 +905,7 @@ function endGame(winnerId) {
   }
 
   // Обновляем статистику с сервера
-  setTimeout(() => { function rematch() {
-  gameOver = true;
-  clearInterval(timerInterval);
-  const stake = myStake > 0 ? myStake : selectedStake;
-  showScreen('searching');
-  document.getElementById('search-stake').textContent = stake > 0 ? stake + ' USDT' : 'Free';
-
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    connectWS(() => {
-      ws.send(JSON.stringify({ type: 'find_match', stake: stake }));
-    });
-  } else {
-    ws.send(JSON.stringify({ type: 'find_match', stake: stake }));
-  }
-}
-
-init(); }, 1000);
+  setTimeout(() => { init(); }, 1000);
 
   showScreen('result');
 }
