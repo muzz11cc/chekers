@@ -369,6 +369,7 @@ function getTgUser() {
 
 // ─── INIT ───
 async function init() {
+  // Показываем данные из Telegram сразу (до ответа сервера)
   const user = getTgUser();
   const initials = (user.first_name||'P')[0].toUpperCase();
   document.getElementById('lobby-avatar').textContent = initials;
@@ -376,14 +377,29 @@ async function init() {
   document.getElementById('lobby-id').textContent = '@' + (user.username || user.id);
 
   try {
+    const initData = tg?.initData || '';
+    if (!initData) {
+      toast('Открой приложение через Telegram');
+      setConnStatus('disconnected');
+      return;
+    }
     const res = await fetch(HTTP_URL + '/login', {
       method: 'POST',
       headers: {'Content-Type':'application/json', 'ngrok-skip-browser-warning': 'true'},
-      body: JSON.stringify({ tgId: user.id, username: user.username || user.first_name })
+      body: JSON.stringify({ initData })
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast('Ошибка авторизации: ' + (err.error || res.status));
+      setConnStatus('disconnected');
+      return;
+    }
     const data = await res.json();
     myPlayerId = data.id;
     myToken = data.token;
+    // Обновляем имя из БД (актуальный username)
+    document.getElementById('lobby-name').textContent = data.username || user.first_name;
+    document.getElementById('lobby-id').textContent = '@' + (data.username || user.id);
     updateStats(data);
     loadHistory();
     connectWS();
