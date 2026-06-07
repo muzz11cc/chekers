@@ -326,6 +326,9 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
         <div id="deposit-opp-status" style="font-size:22px">⏳</div>
       </div>
     </div>
+    <div id="deposit-timeout-warn" style="display:none;margin-top:12px;font-size:12px;color:var(--tx3);text-align:center;line-height:1.5">
+      Если депозит не подтверждён — контракт вернёт ставки автоматически через <span id="deposit-refund-timer">10:00</span>
+    </div>
     <button class="cancel-btn" onclick="cancelDepositAndLeave()">Отмена</button>
     <button id="retry-deposit-btn" style="display:none;margin-top:8px;background:var(--gold-dim);border:0.5px solid var(--gold);border-radius:12px;padding:12px 24px;color:var(--gold);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer" onclick="retryDeposit()">Повторить оплату</button>
   </div>
@@ -599,6 +602,7 @@ function handleMessage(msg) {
   }
 
   if (msg.type === 'game_start') {
+    stopDepositTimer();
     const savedMsg = pendingMatchMsg || JSON.parse(sessionStorage.getItem('activeGameMsg') || 'null');
     if (savedMsg) {
       savedMsg.state = msg.state;
@@ -679,6 +683,7 @@ function handleMessage(msg) {
   }
 
   if (msg.type === 'match_cancelled') {
+    stopDepositTimer();
     pendingMatchMsg = null;
     showScreen('lobby');
     toast('Матч отменён — ставки возвращены');
@@ -702,6 +707,45 @@ function findMatch() {
   }
 }
 
+// ─── DEPOSIT TIMEOUT TIMER ───
+let depositTimeoutInterval = null;
+let depositStartTime = null;
+const DEPOSIT_TIMEOUT_SEC = 600; // 10 минут = 600 сек
+
+function startDepositTimer() {
+  depositStartTime = Date.now();
+  const warn = document.getElementById('deposit-timeout-warn');
+  const timerEl = document.getElementById('deposit-refund-timer');
+  if (warn) warn.style.display = 'block';
+
+  if (depositTimeoutInterval) clearInterval(depositTimeoutInterval);
+  depositTimeoutInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - depositStartTime) / 1000);
+    const remaining = Math.max(0, DEPOSIT_TIMEOUT_SEC - elapsed);
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    if (timerEl) timerEl.textContent = m + ':' + String(s).padStart(2, '0');
+
+    if (remaining <= 60 && warn) {
+      warn.style.color = 'var(--danger)';
+    }
+    if (remaining === 0) {
+      clearInterval(depositTimeoutInterval);
+      if (timerEl) timerEl.textContent = '0:00';
+      toast('Время вышло — ставки будут возвращены контрактом автоматически', 5000);
+    }
+  }, 1000);
+}
+
+function stopDepositTimer() {
+  if (depositTimeoutInterval) {
+    clearInterval(depositTimeoutInterval);
+    depositTimeoutInterval = null;
+  }
+  const warn = document.getElementById('deposit-timeout-warn');
+  if (warn) warn.style.display = 'none';
+}
+
 function retryDeposit() {
   if (pendingDepositMsg) {
     handleDepositRequired(pendingDepositMsg);
@@ -711,6 +755,7 @@ function retryDeposit() {
 }
 
 function cancelDepositAndLeave() {
+  stopDepositTimer();
   pendingMatchMsg = null;
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'deposit_cancelled' }));
@@ -806,6 +851,7 @@ function handleDepositRequired(msg) {
 
   // Сохраняем для повтора при реконнекте
   pendingDepositMsg = msg;
+  startDepositTimer();
 
   const stakeTon = msg.stakeTon;
   const contractAddr = msg.contractAddress;
