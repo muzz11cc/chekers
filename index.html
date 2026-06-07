@@ -645,6 +645,59 @@ function goLobby() {
   showScreen('lobby');
 }
 
+// ─── TON BOC BUILDER ───
+// Строит BOC для Tact message JoinGame { gameId: String }
+// Структура: Cell0(opcode 32bit, ref→Cell1) + Cell1(gameId bytes)
+// БЕЗ внешних библиотек — чистый JS
+function buildJoinGameBoc(opcode, gameId) {
+  const gameBytes = new TextEncoder().encode(gameId);
+  const n = gameBytes.length;
+
+  // Cell 1 — строка gameId (без refs)
+  // d1=0x00 (0 refs), d2=n*2 (n полных байт)
+  const cell1 = new Uint8Array(2 + n);
+  cell1[0] = 0x00;        // d1: 0 refs
+  cell1[1] = n * 2;       // d2: n full bytes, no padding bit
+  cell1.set(gameBytes, 2);
+
+  // Cell 0 — root: opcode (32 bit) + ref на cell1
+  // d1=0x01 (1 ref), d2=0x08 (4 full bytes = 8)
+  // ref index = 1 (1 byte, т.к. size_bytes=1)
+  const cell0 = new Uint8Array(2 + 4 + 1);
+  cell0[0] = 0x01;  // d1: 1 ref
+  cell0[1] = 0x08;  // d2: 4 bytes * 2 = 8
+  const view = new DataView(cell0.buffer);
+  view.setUint32(2, opcode >>> 0, false);  // opcode big-endian
+  cell0[6] = 0x01;  // ref → cell index 1
+
+  // Склеиваем cells
+  const cells = new Uint8Array(cell0.length + cell1.length);
+  cells.set(cell0, 0);
+  cells.set(cell1, cell0.length);
+
+  // BOC header (без CRC32, flags=0x01)
+  // magic(4) + flags(1) + off_size(1) + cells_cnt(1) + roots_cnt(1) + absent(1) + tot_size(1) + root_idx(1)
+  const header = new Uint8Array([
+    0xb5, 0xee, 0x9c, 0x72,  // magic
+    0x01,                     // flags: size_bytes=1, no crc32
+    0x01,                     // off_size = 1
+    0x02,                     // cells_count = 2
+    0x01,                     // roots_count = 1
+    0x00,                     // absent = 0
+    cells.length,             // tot_cells_size (1 byte)
+    0x00,                     // root_index = 0
+  ]);
+
+  const boc = new Uint8Array(header.length + cells.length);
+  boc.set(header, 0);
+  boc.set(cells, header.length);
+
+  // base64 encode
+  let bin = '';
+  boc.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+
 // ─── TON DEPOSIT ───
 function handleDepositRequired(msg) {
   if (!tonConnectUI || !walletAddress) {
@@ -654,34 +707,36 @@ function handleDepositRequired(msg) {
 
   const stakeTon = msg.stakeTon;
   const contractAddr = msg.contractAddress;
-  const stakeNano = BigInt(msg.stakeNano);
+  const gameId = msg.gameId || '';
 
-  // Показываем попап подтверждения
+  // Строим правильный BOC для JoinGame { gameId: String }
+  // Opcode Tact вычисляет как sha256("JoinGame")[0:4] & 0x7fffffff = 0x2ec05bc0
+  // Если контракт отвергает — нужно проверить ABI: cat contracts/build/CheckersGame_CheckersGame.abi.json
+  const JOINGAME_OPCODE = 0x2ec05bc0;
+  const payload = buildJoinGameBoc(JOINGAME_OPCODE, gameId);
+
   toast('Подтверди ставку ' + stakeTon + ' TON в кошельке', 6000);
 
-  // Отправляем транзакцию через TON Connect
-  // JoinGame opcode = 0xaaa12027, payload = cell с gameId
-  // Кодируем body как base64 BOC
-  // Простой вариант: пустой body (контракт принимает любой)
   tonConnectUI.sendTransaction({
     validUntil: Math.floor(Date.now() / 1000) + 300,
     messages: [
       {
         address: contractAddr,
         amount: msg.stakeNano,
-        // base64 BOC: простая ячейка с opcode JoinGame (0xaaa12027) + queryId (0) + gameId string
-        // Используем минимальный валидный payload
-        payload: 'te6cckEBAQEADgAAGKqhICcAAAAAAAAAAFhbOEo=',
+        payload: payload,
       },
     ],
   }).then(() => {
-    toast('Ставка внесена! Игра началась.');
+    toast('Ставка ' + stakeTon + ' TON внесена!');
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'deposit_confirmed', gameId: gameId }));
+    }
   }).catch(e => {
     console.error('TON transaction error:', e);
-    if (e.message && e.message.includes('User rejects')) {
-      toast('Транзакция отклонена');
-    } else {
-      toast('Ошибка транзакции — играем без контракта');
+    const rejected = e.message && (e.message.includes('User rejects') || e.message.includes('UserRejectsError'));
+    toast(rejected ? 'Транзакция отклонена' : 'Ошибка транзакции: ' + (e.message || e));
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'deposit_cancelled', gameId: gameId }));
     }
   });
 }
@@ -712,7 +767,7 @@ function startGame(msg) {
   }
   myPot = msg.pot || selectedStake * 2;
   myStake = msg.myStake || selectedStake;
-  document.getElementById('pot-label').textContent = myPot + ' USDT';
+  document.getElementById('pot-label').textContent = myPot + ' TON';
 
   board = state.board;
   currentPlayer = state.currentPlayer;
@@ -1027,7 +1082,7 @@ function updateStats(data) {
   document.getElementById('stat-draws').textContent = data ? (data.draws || 0) : '0';
   document.getElementById('stat-games').textContent = data ? (data.games || 0) : '0';
   if (data && data.balance !== undefined) {
-    document.getElementById('lobby-bal').textContent = parseFloat(data.balance).toFixed(2) + ' USDT';
+    document.getElementById('lobby-bal').textContent = parseFloat(data.balance).toFixed(2) + ' TON';
   }
 }
 
