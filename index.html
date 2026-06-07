@@ -546,12 +546,12 @@ function connectWS(onOpen) {
 
   ws.onclose = () => {
     setConnStatus('disconnected');
-    // Авто-реконнект через 3 секунды (если не в игре)
+    // Авто-реконнект через 2 секунды всегда
     setTimeout(() => {
       if (myToken && (!ws || ws.readyState === WebSocket.CLOSED)) {
         connectWS();
       }
-    }, 3000);
+    }, 2000);
   };
 
   ws.onerror = () => {
@@ -606,6 +606,12 @@ function handleMessage(msg) {
   if (msg.type === 'timer_update') {
     times[0] = msg.whiteTime;
     times[1] = msg.blackTime;
+    // Обновляем чей ход — сервер авторитетен
+    if (msg.activePlayer && msg.activePlayer !== currentPlayer) {
+      currentPlayer = msg.activePlayer;
+      isMyTurn = currentPlayer === myPlayerIndex;
+      updateStatusBar();
+    }
     renderTimers();
   }
 
@@ -621,13 +627,15 @@ function handleMessage(msg) {
 
   if (msg.type === 'reconnected') {
     mySessionId = msg.sessionId;
-    // Восстанавливаем игру из сохранённого состояния
     const savedMsg = sessionStorage.getItem('activeGameMsg');
     if (savedMsg) {
       const gameMsg = JSON.parse(savedMsg);
-      // Обновляем state из reconnected (актуальнее)
+      // Обновляем из reconnected — данные сервера актуальнее
       gameMsg.state = msg.state;
       gameMsg.playerIndex = msg.playerIndex;
+      // Передаём реальные времена с сервера
+      gameMsg.whiteTime = msg.whiteTime;
+      gameMsg.blackTime = msg.blackTime;
       startGame(gameMsg);
     }
     return;
@@ -837,7 +845,11 @@ function startGame(msg) {
   gameOver = false;
   selected = null;
   hints = [];
-  times = [120, 120];
+  // Берём реальное время из state если есть (реконнект), иначе дефолт
+  times = [
+    (msg.whiteTime !== undefined) ? msg.whiteTime : 120,
+    (msg.blackTime !== undefined) ? msg.blackTime : 120,
+  ];
   capturedByP1 = 0;
   capturedByP2 = 0;
   renderCaptured();
@@ -847,6 +859,7 @@ function startGame(msg) {
   showScreen('game');
   renderBoard();
   renderTimers();
+  updateStatusBar();
   startClientTimer();
 }
 
@@ -1097,7 +1110,11 @@ function startClientTimer() {
 // ─── GAME OVER ───
 function endGame(winnerId) {
   gameOver = true;
-  sessionStorage.removeItem('activeSession');
+  // Чистим сессию ДО всего — чтобы авто-реконнект WS шёл в лобби, не в игру
+  mySessionId = null;
+  pendingMatchMsg = null;
+  sessionStorage.removeItem('activeGameId');
+  sessionStorage.removeItem('activeGameMsg');
   clearInterval(timerInterval);
 
   const isWinner = winnerId === myPlayerId;
