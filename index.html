@@ -327,6 +327,7 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
       </div>
     </div>
     <button class="cancel-btn" onclick="cancelDepositAndLeave()">Отмена</button>
+    <button id="retry-deposit-btn" style="display:none;margin-top:8px;background:var(--gold-dim);border:0.5px solid var(--gold);border-radius:12px;padding:12px 24px;color:var(--gold);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer" onclick="retryDeposit()">Повторить оплату</button>
   </div>
 
   <!-- GAME -->
@@ -383,6 +384,7 @@ let myPlayerId = null;
 let myToken = null;
 let mySessionId = null;
 let pendingMatchMsg = null; // ожидает старта после депозитов
+let pendingDepositMsg = null; // данные депозита для повтора
 let selectedStake = 0;
 let myPlayerIndex = null; // 1 или 2 (белые/чёрные)
 let myPot = 0;       // банк текущей игры (с сервера)
@@ -583,6 +585,9 @@ function handleMessage(msg) {
       count === 0 ? 'Ожидаем депозиты...' :
       count === 1 ? 'Ждём второго игрока...' :
       'Оба внесли ставки — начинаем!';
+    // Показываем кнопку повтора если наш депозит ещё не принят
+    const retryBtn = document.getElementById('retry-deposit-btn');
+    if (retryBtn) retryBtn.style.display = (!msg.myDeposited && pendingDepositMsg) ? 'block' : 'none';
   }
 
   if (msg.type === 'match_found') {
@@ -694,6 +699,14 @@ function findMatch() {
   }
 }
 
+function retryDeposit() {
+  if (pendingDepositMsg) {
+    handleDepositRequired(pendingDepositMsg);
+  } else {
+    toast('Нет данных для повтора — обнови страницу');
+  }
+}
+
 function cancelDepositAndLeave() {
   pendingMatchMsg = null;
   if (ws && ws.readyState === WebSocket.OPEN) {
@@ -787,6 +800,9 @@ function handleDepositRequired(msg) {
     toast('Подключи TON кошелёк для игры на ставку');
     return;
   }
+
+  // Сохраняем для повтора при реконнекте
+  pendingDepositMsg = msg;
 
   const stakeTon = msg.stakeTon;
   const contractAddr = msg.contractAddress;
