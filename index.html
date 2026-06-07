@@ -584,18 +584,20 @@ function handleMessage(msg) {
     mySessionId = msg.sessionId;
     sessionStorage.setItem('activeGameId', msg.sessionId);
     sessionStorage.setItem('activeGameMsg', JSON.stringify(msg));
-    if (!msg.stake || msg.stake === 0) {
-      startGame(msg);
-    }
-    // stake > 0: ждём deposit_required → экран ожидания → game_start
+    // Всегда ждём game_start от сервера — он содержит актуальный state
+    // Показываем экран поиска пока ждём
   }
 
   if (msg.type === 'game_start') {
-    const msgToUse = pendingMatchMsg || JSON.parse(sessionStorage.getItem('activeGameMsg') || 'null');
-    if (msgToUse) {
-      if (msg.state) msgToUse.state = msg.state;
+    // Берём мета-данные из сохранённого match_found (имена, ставки, playerIndex)
+    const savedMsg = pendingMatchMsg || JSON.parse(sessionStorage.getItem('activeGameMsg') || 'null');
+    if (savedMsg) {
+      // Накладываем актуальный state с сервера
+      savedMsg.state = msg.state;
+      if (msg.whiteTime !== undefined) savedMsg.whiteTime = msg.whiteTime;
+      if (msg.blackTime !== undefined) savedMsg.blackTime = msg.blackTime;
       pendingMatchMsg = null;
-      startGame(msgToUse);
+      startGame(savedMsg);
     }
   }
 
@@ -627,16 +629,20 @@ function handleMessage(msg) {
 
   if (msg.type === 'reconnected') {
     mySessionId = msg.sessionId;
-    const savedMsg = sessionStorage.getItem('activeGameMsg');
-    if (savedMsg) {
-      const gameMsg = JSON.parse(savedMsg);
-      // Обновляем из reconnected — данные сервера актуальнее
+    const savedRaw = sessionStorage.getItem('activeGameMsg');
+    if (savedRaw && msg.state) {
+      const gameMsg = JSON.parse(savedRaw);
       gameMsg.state = msg.state;
       gameMsg.playerIndex = msg.playerIndex;
-      // Передаём реальные времена с сервера
       gameMsg.whiteTime = msg.whiteTime;
       gameMsg.blackTime = msg.blackTime;
       startGame(gameMsg);
+    } else {
+      // Нет сохранённого матча — идём в лобби
+      mySessionId = null;
+      sessionStorage.removeItem('activeGameId');
+      sessionStorage.removeItem('activeGameMsg');
+      showScreen('lobby');
     }
     return;
   }
@@ -814,6 +820,12 @@ function handleDepositRequired(msg) {
 // ─── GAME START ───
 function startGame(msg) {
   const state = msg.state;
+
+  if (!state || !state.board) {
+    console.error('startGame: no state', msg);
+    toast('Ошибка: нет данных игры');
+    return;
+  }
 
   // Определяем кто мы — белые (1) или чёрные (2)
   // players[0] = белые, players[1] = чёрные
