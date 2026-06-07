@@ -698,6 +698,12 @@ function cancelSearch() {
 function goLobby() {
   gameOver = true;
   clearInterval(timerInterval);
+  // Чистим состояние сессии ДО закрытия WS
+  // иначе onclose → connectWS увидит mySessionId и попытается реконнект к старой игре
+  mySessionId = null;
+  pendingMatchMsg = null;
+  sessionStorage.removeItem('activeGameId');
+  sessionStorage.removeItem('activeGameMsg');
   if (ws) ws.close();
   showScreen('lobby');
 }
