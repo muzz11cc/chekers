@@ -599,14 +599,17 @@ function handleMessage(msg) {
   }
 
   if (msg.type === 'game_start') {
-    // Берём мета-данные из сохранённого match_found (имена, ставки, playerIndex)
     const savedMsg = pendingMatchMsg || JSON.parse(sessionStorage.getItem('activeGameMsg') || 'null');
     if (savedMsg) {
-      // Накладываем актуальный state с сервера
       savedMsg.state = msg.state;
       if (msg.whiteTime !== undefined) savedMsg.whiteTime = msg.whiteTime;
       if (msg.blackTime !== undefined) savedMsg.blackTime = msg.blackTime;
+      // playerIndex из match_found уже в savedMsg — не затираем
+      // Но если сервер прислал явно — берём оттуда
+      if (msg.playerIndex !== undefined) savedMsg.playerIndex = msg.playerIndex;
       pendingMatchMsg = null;
+      // Обновляем sessionStorage актуальными данными
+      sessionStorage.setItem('activeGameMsg', JSON.stringify(savedMsg));
       startGame(savedMsg);
     }
   }
@@ -852,16 +855,18 @@ function startGame(msg) {
   // Определяем кто мы — белые (1) или чёрные (2)
   // players[0] = белые, players[1] = чёрные
   // В wsServer: [opponentId, playerId] — мы второй
+  // playerIndex: 1 = белые (players[0]), 2 = чёрные (players[1])
+  // Берём из msg — сервер шлёт правильное значение в match_found
   myPlayerIndex = msg.playerIndex || 2;
-  // Если мы первый в очереди — мы белые
-  // Простая эвристика: если наш id совпадает с тем кто нашёл матч первым
-  // На практике сервер должен слать playerIndex — пока считаем нас чёрными
 
   const myName = msg.myName || (myPlayerIndex === 1 ? 'Белые' : 'Чёрные');
   const oppName = msg.opponentName || (myPlayerIndex === 1 ? 'Чёрные' : 'Белые');
   const myInitial = myName[0].toUpperCase();
   const oppInitial = oppName[0].toUpperCase();
 
+  // p1 карточка = белые, p2 карточка = чёрные
+  // myPlayerIndex=1 → я белые → моё имя в p1
+  // myPlayerIndex=2 → я чёрные → моё имя в p2
   if (myPlayerIndex === 1) {
     document.getElementById('p1name').textContent = myName + ' (ты)';
     document.getElementById('p2name').textContent = oppName;
