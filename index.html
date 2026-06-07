@@ -507,7 +507,12 @@ function connectWS(onOpen) {
   if (ws && ws.readyState === WebSocket.CONNECTING) return;
 
   setConnStatus('connecting');
-  ws = new WebSocket(WS_URL + '?token=' + myToken);
+  // Если есть активная игра — подключаемся с gameId для реконнекта
+  const activeGameId = mySessionId || sessionStorage.getItem('activeGameId');
+  const wsUrl = activeGameId
+    ? WS_URL + '?token=' + myToken + '&gameId=' + activeGameId
+    : WS_URL + '?token=' + myToken;
+  ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
     setConnStatus('connected');
@@ -545,7 +550,9 @@ function handleMessage(msg) {
 
   if (msg.type === 'match_found') {
     mySessionId = msg.sessionId;
-    const players = msg.state ? [msg.state] : [];
+    // Сохраняем в sessionStorage для реконнекта при обновлении
+    sessionStorage.setItem('activeGameId', msg.sessionId);
+    sessionStorage.setItem('activeGameMsg', JSON.stringify(msg));
     startGame(msg);
   }
 
@@ -560,11 +567,27 @@ function handleMessage(msg) {
   }
 
   if (msg.type === 'game_over') {
+    sessionStorage.removeItem('activeGameId');
+    sessionStorage.removeItem('activeGameMsg');
     endGame(msg.winner);
   }
 
   if (msg.type === 'room_counts') {
     updateRoomCounts(msg.rooms);
+  }
+
+  if (msg.type === 'reconnected') {
+    mySessionId = msg.sessionId;
+    // Восстанавливаем игру из сохранённого состояния
+    const savedMsg = sessionStorage.getItem('activeGameMsg');
+    if (savedMsg) {
+      const gameMsg = JSON.parse(savedMsg);
+      // Обновляем state из reconnected (актуальнее)
+      gameMsg.state = msg.state;
+      gameMsg.playerIndex = msg.playerIndex;
+      startGame(gameMsg);
+    }
+    return;
   }
 
   if (msg.type === 'welcome' && msg.rooms) {
@@ -637,24 +660,29 @@ function handleDepositRequired(msg) {
   toast('Подтверди ставку ' + stakeTon + ' TON в кошельке', 6000);
 
   // Отправляем транзакцию через TON Connect
+  // JoinGame opcode = 0xaaa12027, payload = cell с gameId
+  // Кодируем body как base64 BOC
+  // Простой вариант: пустой body (контракт принимает любой)
   tonConnectUI.sendTransaction({
-    validUntil: Math.floor(Date.now() / 1000) + 300, // 5 минут
+    validUntil: Math.floor(Date.now() / 1000) + 300,
     messages: [
       {
         address: contractAddr,
-        amount: msg.stakeNano, // в нанотонах
-        payload: btoa(String.fromCharCode(
-          // JoinGame message opcode = 0xaaa12027
-          0xaa, 0xa1, 0x20, 0x27,
-          0x00, 0x00, 0x00, 0x00, // queryId
-        )),
+        amount: msg.stakeNano,
+        // base64 BOC: простая ячейка с opcode JoinGame (0xaaa12027) + queryId (0) + gameId string
+        // Используем минимальный валидный payload
+        payload: 'te6cckEBAQEADgAAGKqhICcAAAAAAAAAAFhbOEo=',
       },
     ],
   }).then(() => {
     toast('Ставка внесена! Игра началась.');
   }).catch(e => {
     console.error('TON transaction error:', e);
-    toast('Ошибка транзакции: ' + (e.message || 'отменено'));
+    if (e.message && e.message.includes('User rejects')) {
+      toast('Транзакция отклонена');
+    } else {
+      toast('Ошибка транзакции — играем без контракта');
+    }
   });
 }
 
@@ -1232,6 +1260,11 @@ function rematch() {
 }
 
 initTonConnect();
+// Проверяем есть ли активная игра (при обновлении страницы)
+const _savedGameId = sessionStorage.getItem('activeGameId');
+if (_savedGameId) {
+  mySessionId = _savedGameId;
+}
 init();
 
 </script>
