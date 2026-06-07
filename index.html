@@ -571,6 +571,11 @@ function handleMessage(msg) {
   }
 
   if (msg.type === 'deposit_status') {
+    // Если мы не на экране депозита — показываем его (реконнект)
+    const activeScreen = document.querySelector('.screen.active');
+    if (activeScreen && activeScreen.id !== 'deposit-waiting') {
+      showScreen('deposit-waiting');
+    }
     document.getElementById('deposit-my-status').textContent = msg.myDeposited ? '✅' : '⏳';
     document.getElementById('deposit-opp-status').textContent = msg.oppDeposited ? '✅' : '⏳';
     const count = (msg.myDeposited ? 1 : 0) + (msg.oppDeposited ? 1 : 0);
@@ -637,13 +642,14 @@ function handleMessage(msg) {
       gameMsg.whiteTime = msg.whiteTime;
       gameMsg.blackTime = msg.blackTime;
       startGame(gameMsg);
-    } else {
-      // Нет сохранённого матча — идём в лобби
+    } else if (msg.state) {
+      // state есть но нет savedMsg — странная ситуация, идём в лобби
       mySessionId = null;
       sessionStorage.removeItem('activeGameId');
       sessionStorage.removeItem('activeGameMsg');
       showScreen('lobby');
     }
+    // Если нет ни state ни savedMsg — ждём deposit_status (pending deposit фаза)
     return;
   }
 
