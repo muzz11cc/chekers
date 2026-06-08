@@ -634,6 +634,9 @@ function handleMessage(msg) {
   if (msg.type === 'game_over') {
     sessionStorage.removeItem('activeGameId');
     sessionStorage.removeItem('activeGameMsg');
+    // Обновляем pot/stake из события если клиент потерял их (реконнект/дисконнект)
+    if (msg.pot && msg.pot > 0) myPot = msg.pot;
+    if (msg.stake && msg.stake > 0) myStake = msg.stake;
     endGame(msg.winner);
   }
 
