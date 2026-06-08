@@ -72,7 +72,12 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
 .ton-label { font-size: 10px; letter-spacing: 1px; color: var(--tx3); text-transform: uppercase; }
 .ton-disconnect { background: none; border: 0.5px solid var(--bdr); border-radius: 6px; padding: 4px 10px; font-family: inherit; font-size: 11px; color: var(--tx3); cursor: pointer; }
 .ton-disconnect:hover { color: var(--danger); border-color: var(--danger); }
-.ton-addr { font-size: 13px; color: var(--tx2); font-family: monospace; word-break: break-all; }
+.ton-addr { font-size: 13px; color: var(--tx2); font-family: monospace; word-break: break-all; margin-bottom: 6px; }
+.ton-bal-row { display: flex; align-items: baseline; gap: 6px; }
+.ton-bal { font-size: 20px; font-weight: 600; color: #0098ea; letter-spacing: 1px; }
+.ton-bal-cur { font-size: 12px; color: var(--tx3); }
+.ton-eye { background: none; border: none; padding: 0 0 0 4px; color: var(--tx3); cursor: pointer; font-size: 16px; line-height: 1; display: flex; align-items: center; transition: color 0.15s; }
+.ton-eye:hover { color: var(--tx2); }
 .ton-connecting { font-size: 13px; color: var(--tx2); text-align: center; padding: 4px 0; }
 
 /* ─── ROOMS ─── */
@@ -232,6 +237,13 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
         <button class="ton-disconnect" onclick="disconnectWallet()">Отключить</button>
       </div>
       <div class="ton-addr" id="ton-addr">—</div>
+      <div class="ton-bal-row">
+        <span class="ton-bal" id="ton-bal">••••</span>
+        <span class="ton-bal-cur">TON</span>
+        <button class="ton-eye" id="ton-eye" onclick="toggleTonBalance()" title="Показать/скрыть баланс">
+          <i class="ti ti-eye" id="ton-eye-icon"></i>
+        </button>
+      </div>
     </div>
 
     <!-- Кошелёк не подключён -->
@@ -1335,6 +1347,38 @@ function initTonConnect() {
   }
 }
 
+let tonBalanceVisible = false;
+let tonBalanceValue = null;
+
+function toggleTonBalance() {
+  tonBalanceVisible = !tonBalanceVisible;
+  const balEl = document.getElementById('ton-bal');
+  const iconEl = document.getElementById('ton-eye-icon');
+  if (tonBalanceVisible) {
+    balEl.textContent = tonBalanceValue !== null ? tonBalanceValue : '...';
+    iconEl.className = 'ti ti-eye-off';
+    if (tonBalanceValue === null && walletAddress) fetchTonBalance(walletAddress);
+  } else {
+    balEl.textContent = '••••';
+    iconEl.className = 'ti ti-eye';
+  }
+}
+
+async function fetchTonBalance(address) {
+  try {
+    const res = await fetch(`https://toncenter.com/api/v2/getAddressBalance?address=${encodeURIComponent(address)}`);
+    const data = await res.json();
+    if (data.ok) {
+      tonBalanceValue = (parseInt(data.result) / 1e9).toFixed(2);
+      if (tonBalanceVisible) {
+        document.getElementById('ton-bal').textContent = tonBalanceValue;
+      }
+    }
+  } catch(e) {
+    console.error('Balance fetch error:', e);
+  }
+}
+
 function onWalletConnected(wallet) {
   const rawAddr = wallet.account.address;
   // TON Connect возвращает raw адрес (0:abc...), конвертируем в friendly (UQ...)
@@ -1343,21 +1387,33 @@ function onWalletConnected(wallet) {
 
   const short = friendlyAddr.slice(0, 8) + '...' + friendlyAddr.slice(-4);
   document.getElementById('ton-addr').textContent = short;
+  // сброс состояния глазика при подключении
+  tonBalanceVisible = false;
+  tonBalanceValue = null;
+  document.getElementById('ton-bal').textContent = '••••';
+  document.getElementById('ton-eye-icon').className = 'ti ti-eye';
   document.getElementById('ton-card').classList.add('visible');
   document.getElementById('wallet-connect-row').style.display = 'none';
 
   toast('Кошелёк подключён');
 
-  // Сохраняем адрес на сервере
-  if (myPlayerId) {
+  // Сохраняем адрес на сервере — только если токен уже получен
+  // playerId берётся сервером из токена, не из body
+  if (myToken) {
     fetch(HTTP_URL + '/ton-address', {
       method: 'POST',
-      headers: {'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},
-      body: JSON.stringify({ playerId: myPlayerId, tonAddress: friendlyAddr }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + myToken,
+        'ngrok-skip-browser-warning': 'true',
+      },
+      body: JSON.stringify({ tonAddress: friendlyAddr }),
     })
     .then(r => r.json())
     .then(d => console.log('[TON] Address saved:', d))
     .catch(e => console.error('[TON] Address save error:', e));
+  } else {
+    console.warn('[TON] Token not ready — address not saved yet');
   }
 }
 
@@ -1365,6 +1421,10 @@ function onWalletDisconnected() {
   document.getElementById('ton-card').classList.remove('visible');
   document.getElementById('wallet-connect-row').style.display = '';
   document.getElementById('ton-addr').textContent = '—';
+  document.getElementById('ton-bal').textContent = '••••';
+  document.getElementById('ton-eye-icon').className = 'ti ti-eye';
+  tonBalanceVisible = false;
+  tonBalanceValue = null;
   walletAddress = null;
 }
 
