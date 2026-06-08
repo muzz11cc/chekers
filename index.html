@@ -76,8 +76,7 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
 .ton-bal-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 .ton-bal { font-size: 20px; font-weight: 600; color: #0098ea; letter-spacing: 1px; }
 .ton-bal-cur { font-size: 12px; color: var(--tx3); }
-.ton-eye { background: none; border: none; padding: 2px 4px; color: var(--tx3); cursor: pointer; line-height: 1; display: flex; align-items: center; }
-.ton-eye:active { opacity: 0.6; }
+.ton-eye { background: none; border: none; padding: 0; color: var(--tx3); cursor: pointer; font-size: 11px; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .ton-connecting { font-size: 13px; color: var(--tx2); text-align: center; padding: 4px 0; }
 
 /* ─── ROOMS ─── */
@@ -240,8 +239,8 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
       <div class="ton-bal-row">
         <span class="ton-bal" id="ton-bal">—</span>
         <span class="ton-bal-cur" id="ton-bal-cur" style="display:none">TON</span>
-        <button class="ton-eye" id="ton-eye" onclick="toggleTonBalance()" title="Показать баланс">
-          <span id="ton-eye-icon" style="font-size:18px;line-height:1">👁</span>
+        <button class="ton-eye" id="ton-eye" onclick="toggleTonBalance()">
+          <span id="ton-eye-icon">показать</span>
         </button>
       </div>
     </div>
@@ -1358,12 +1357,12 @@ function toggleTonBalance() {
   if (tonBalanceVisible) {
     balEl.textContent = tonBalanceValue !== null ? tonBalanceValue : '...';
     curEl.style.display = '';
-    iconEl.textContent = '🙈';
+    iconEl.textContent = 'скрыть';
     if (tonBalanceValue === null && walletAddress) fetchTonBalance(walletAddress);
   } else {
     balEl.textContent = '—';
     curEl.style.display = 'none';
-    iconEl.textContent = '👁';
+    iconEl.textContent = 'показать';
   }
 }
 
@@ -1395,7 +1394,7 @@ function onWalletConnected(wallet) {
   tonBalanceValue = null;
   document.getElementById('ton-bal').textContent = '—';
   document.getElementById('ton-bal-cur').style.display = 'none';
-  document.getElementById('ton-eye-icon').textContent = '👁';
+  document.getElementById('ton-eye-icon').textContent = 'показать';
   document.getElementById('ton-card').classList.add('visible');
   document.getElementById('wallet-connect-row').style.display = 'none';
 
@@ -1427,7 +1426,7 @@ function onWalletDisconnected() {
   document.getElementById('ton-addr').textContent = '—';
   document.getElementById('ton-bal').textContent = '—';
   document.getElementById('ton-bal-cur').style.display = 'none';
-  document.getElementById('ton-eye-icon').textContent = '👁';
+  document.getElementById('ton-eye-icon').textContent = 'показать';
   tonBalanceVisible = false;
   tonBalanceValue = null;
   walletAddress = null;
