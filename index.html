@@ -357,6 +357,16 @@ body { background: var(--bg); color: var(--tx); font-family: 'Space Grotesk', -a
     <div class="result-title win" id="result-title">Победа!</div>
     <div class="result-amount win" id="result-amount">+17 TON</div>
     <div class="result-sub" id="result-sub">Комиссия: 3%<br>Зачислено на баланс</div>
+    <!-- Баланс кошелька на экране результата -->
+    <div id="result-wallet" style="display:none;background:var(--s1);border:0.5px solid var(--bdr);border-radius:12px;padding:12px 16px;width:100%;box-sizing:border-box;text-align:left">
+      <div style="font-size:10px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">TON Кошелёк</div>
+      <div style="font-size:12px;color:var(--tx2);font-family:monospace;margin-bottom:6px" id="result-wallet-addr">—</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:20px;font-weight:600;color:#0098ea" id="result-wallet-bal">...</span>
+        <span id="result-wallet-cur" style="font-size:12px;color:var(--tx3)">TON</span>
+        <button onclick="toggleResultBalance()" style="background:none;border:none;padding:0;color:var(--tx3);font-size:11px;font-family:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer"><span id="result-wallet-eye">скрыть</span></button>
+      </div>
+    </div>
     <div class="result-btns">
       <button class="btn-main" onclick="rematch()"><i class="ti ti-refresh" style="font-size:16px;vertical-align:-2px" aria-hidden="true"></i> Реванш</button>
       <button class="btn-sec" onclick="goLobby()"><i class="ti ti-home" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> В лобби</button>
@@ -766,13 +776,15 @@ function cancelSearch() {
 function goLobby() {
   gameOver = true;
   clearInterval(timerInterval);
-  // Чистим состояние сессии ДО закрытия WS
-  // иначе onclose → connectWS увидит mySessionId и попытается реконнект к старой игре
   mySessionId = null;
   pendingMatchMsg = null;
   sessionStorage.removeItem('activeGameId');
   sessionStorage.removeItem('activeGameMsg');
   if (ws) ws.close();
+  // Обновляем баланс в лобби если кошелёк подключён
+  if (walletAddress && tonBalanceVisible && tonBalanceValue !== null) {
+    document.getElementById('ton-bal').textContent = tonBalanceValue;
+  }
   showScreen('lobby');
 }
 
@@ -1224,6 +1236,30 @@ function endGame(winnerId) {
   // Обновляем статистику с сервера
   setTimeout(() => { init(); }, 1000);
 
+  // Показываем баланс кошелька на экране результата
+  const resultWallet = document.getElementById('result-wallet');
+  if (walletAddress) {
+    resultWallet.style.display = '';
+    document.getElementById('result-wallet-addr').textContent =
+      walletAddress.slice(0, 8) + '...' + walletAddress.slice(-4);
+    document.getElementById('result-wallet-bal').textContent = '...';
+    document.getElementById('result-wallet-cur').style.display = '';
+    document.getElementById('result-wallet-eye').textContent = 'скрыть';
+    // Обновляем баланс с небольшой задержкой — дать блокчейну время на выплату
+    setTimeout(() => {
+      fetchTonBalance(walletAddress).then(() => {
+        const bal = tonBalanceValue;
+        if (bal !== null) {
+          document.getElementById('result-wallet-bal').textContent = bal;
+          // Обновляем и в лобби
+          document.getElementById('ton-bal').textContent = bal;
+        }
+      });
+    }, 5000);
+  } else {
+    resultWallet.style.display = 'none';
+  }
+
   showScreen('result');
 }
 
@@ -1372,12 +1408,30 @@ async function fetchTonBalance(address) {
     const data = await res.json();
     if (data.ok) {
       tonBalanceValue = (parseInt(data.result) / 1e9).toFixed(2);
+      // Обновляем в лобби если видимый
       if (tonBalanceVisible) {
         document.getElementById('ton-bal').textContent = tonBalanceValue;
       }
     }
   } catch(e) {
     console.error('Balance fetch error:', e);
+  }
+}
+
+let resultBalanceVisible = true;
+function toggleResultBalance() {
+  resultBalanceVisible = !resultBalanceVisible;
+  const balEl = document.getElementById('result-wallet-bal');
+  const curEl = document.getElementById('result-wallet-cur');
+  const eyeEl = document.getElementById('result-wallet-eye');
+  if (resultBalanceVisible) {
+    balEl.textContent = tonBalanceValue !== null ? tonBalanceValue : '...';
+    curEl.style.display = '';
+    eyeEl.textContent = 'скрыть';
+  } else {
+    balEl.textContent = '—';
+    curEl.style.display = 'none';
+    eyeEl.textContent = 'показать';
   }
 }
 
@@ -1389,14 +1443,16 @@ function onWalletConnected(wallet) {
 
   const short = friendlyAddr.slice(0, 8) + '...' + friendlyAddr.slice(-4);
   document.getElementById('ton-addr').textContent = short;
-  // сброс состояния глазика при подключении
-  tonBalanceVisible = false;
+  // Сразу показываем баланс (загружаем автоматически)
+  tonBalanceVisible = true;
   tonBalanceValue = null;
-  document.getElementById('ton-bal').textContent = '—';
-  document.getElementById('ton-bal-cur').style.display = 'none';
-  document.getElementById('ton-eye-icon').textContent = 'показать';
+  document.getElementById('ton-bal').textContent = '...';
+  document.getElementById('ton-bal-cur').style.display = '';
+  document.getElementById('ton-eye-icon').textContent = 'скрыть';
   document.getElementById('ton-card').classList.add('visible');
   document.getElementById('wallet-connect-row').style.display = 'none';
+  // Грузим баланс сразу
+  fetchTonBalance(friendlyAddr);
 
   toast('Кошелёк подключён');
 
