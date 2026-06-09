@@ -598,12 +598,24 @@ function handleMessage(msg) {
     // Показываем экран поиска пока ждём
   }
 
+  // Сервер создал игру — ждём подтверждения готовности от обоих игроков
+  if (msg.type === 'game_ready_check') {
+    stopDepositTimer();
+    showScreen('deposit-waiting');
+    document.getElementById('deposit-status-text').textContent = 'Оба игрока подтверждают готовность...';
+    // Сообщаем серверу что мы готовы
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'player_ready' }));
+    }
+  }
+
   if (msg.type === 'game_start') {
     stopDepositTimer();
+    // Сообщаем серверу что получили game_start (для реконнекта)
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'player_ready' }));
+    }
     let savedMsg = pendingMatchMsg || JSON.parse(sessionStorage.getItem('activeGameMsg') || 'null');
-
-    // При полном реконнекте (перезагрузка страницы) savedMsg может быть null
-    // Сервер теперь шлёт все нужные поля в game_start — создаём msg на лету
     if (!savedMsg) {
       savedMsg = {
         type: 'match_found',
@@ -616,14 +628,12 @@ function handleMessage(msg) {
         pot: msg.pot || 0,
       };
     }
-
     savedMsg.state = msg.state;
     if (msg.whiteTime !== undefined) savedMsg.whiteTime = msg.whiteTime;
     if (msg.blackTime !== undefined) savedMsg.blackTime = msg.blackTime;
     if (msg.playerIndex !== undefined) savedMsg.playerIndex = msg.playerIndex;
     if (msg.pot !== undefined) savedMsg.pot = msg.pot;
     if (msg.myStake !== undefined) savedMsg.myStake = msg.myStake;
-
     pendingMatchMsg = null;
     sessionStorage.setItem('activeGameMsg', JSON.stringify(savedMsg));
     startGame(savedMsg);
@@ -663,26 +673,29 @@ function handleMessage(msg) {
     const savedRaw = sessionStorage.getItem('activeGameMsg');
 
     if (msg.state) {
-      // Игра уже идёт — восстанавливаем доску
-      if (savedRaw) {
-        const gameMsg = JSON.parse(savedRaw);
-        gameMsg.state = msg.state;
-        gameMsg.playerIndex = msg.playerIndex;
-        gameMsg.whiteTime = msg.whiteTime;
-        gameMsg.blackTime = msg.blackTime;
-        startGame(gameMsg);
-      } else {
-        // Нет сохранённого match_found — уходим в лобби
-        mySessionId = null;
-        sessionStorage.removeItem('activeGameId');
-        sessionStorage.removeItem('activeGameMsg');
-        showScreen('lobby');
+      // Игра активна — шлём player_ready и восстанавливаем доску
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'player_ready' }));
       }
+      let gameMsg = savedRaw ? JSON.parse(savedRaw) : {
+        type: 'match_found',
+        sessionId: msg.sessionId,
+        playerIndex: msg.playerIndex,
+        myName: 'Player', opponentName: 'Player',
+        myStake: 0, stake: 0, pot: 0,
+      };
+      gameMsg.state = msg.state;
+      gameMsg.playerIndex = msg.playerIndex;
+      gameMsg.whiteTime = msg.whiteTime;
+      gameMsg.blackTime = msg.blackTime;
+      startGame(gameMsg);
     } else {
-      // state = null: игра ещё не стартовала (деплой контракта / ожидание депозитов)
-      // Показываем экран ожидания — match_start придёт когда оба внесут депозит
+      // Игра ещё не стартовала — показываем экран ожидания и шлём ready
       showScreen('deposit-waiting');
       document.getElementById('deposit-status-text').textContent = 'Восстановление соединения...';
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'player_ready' }));
+      }
     }
     return;
   }
