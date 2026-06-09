@@ -1125,6 +1125,14 @@ function handleMessage(msg) {
     showScreen('searching');
   }
 
+  if (msg.type === 'game_ready_check') {
+    // Сервер ждёт подтверждения от обоих игроков перед стартом
+    // Отвечаем немедленно — клиент готов
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'player_ready', sessionId: msg.sessionId }));
+    }
+  }
+
   if (msg.type === 'deposit_required') {
     pendingMatchMsg = msg;
     showScreen('deposit-waiting');
