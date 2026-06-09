@@ -1187,19 +1187,17 @@ function handleMessage(msg) {
   }
 
   if (msg.type === 'timer_update') {
-    const prevPlayer = currentPlayer;
+    // Обновляем чей ход
     if (msg.activePlayer && msg.activePlayer !== currentPlayer) {
-      // Сменился ход — синхронизируем таймер с сервером
       currentPlayer = msg.activePlayer;
       isMyTurn = currentPlayer === myPlayerIndex;
-      // times[activePlayer-1] = время активного игрока от сервера, остальной = 60
-      times[0] = msg.whiteTime;
-      times[1] = msg.blackTime;
-      // Сбрасываем клиентский дедлайн под авторитетное значение сервера
-      resetMoveTimer(msg.activePlayer === 1 ? msg.whiteTime : msg.blackTime);
       updateStatusBar();
     }
-    // Рендер не нужен — тикер сам перерисует через 250ms
+    // Синхронизируем дедлайн при КАЖДОМ timer_update (сервер авторитетен)
+    const activeTime = msg.activePlayer === 1 ? msg.whiteTime : msg.blackTime;
+    times[0] = msg.whiteTime;
+    times[1] = msg.blackTime;
+    resetMoveTimer(activeTime);
   }
 
   if (msg.type === 'game_over') {
@@ -1768,7 +1766,13 @@ function startClientTimer() {
     const remaining = Math.max(0, Math.ceil((moveDeadlineClient - Date.now()) / 1000));
     times[idx] = remaining;
     renderTimers();
-  }, 250); // 250ms — плавно, без дёрганья
+    // Если время вышло — показываем 0 и ждём game_over от сервера
+    // Визуально мигаем красным чтобы игрок понял
+    if (remaining === 0) {
+      const timerEl = document.getElementById('timer' + currentPlayer);
+      if (timerEl) timerEl.classList.add('low');
+    }
+  }, 250);
 }
 
 // Вызывается при смене хода — синхронизирует дедлайн с сервером
