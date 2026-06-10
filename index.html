@@ -960,6 +960,7 @@ let gameOver = false;
 let times = [120, 120];
 let timerInterval = null;
 let isMyTurn = false;
+let currentMoveIndex = 0; // Защита от replay атак — синхронизируется с сервером
 
 // ─── TELEGRAM ───
 const tg = window.Telegram?.WebApp;
@@ -1167,6 +1168,7 @@ function handleMessage(msg) {
 
   if (msg.type === 'game_start') {
     stopDepositTimer();
+    if (msg.moveIndex !== undefined) currentMoveIndex = msg.moveIndex;
     const savedMsg = pendingMatchMsg || JSON.parse(sessionStorage.getItem('activeGameMsg') || 'null');
     if (savedMsg) {
       savedMsg.state = msg.state;
@@ -1183,6 +1185,7 @@ function handleMessage(msg) {
   }
 
   if (msg.type === 'state_update') {
+    if (msg.moveIndex !== undefined) currentMoveIndex = msg.moveIndex;
     updateGameState(msg.state);
   }
 
@@ -1215,6 +1218,7 @@ function handleMessage(msg) {
 
   if (msg.type === 'reconnected') {
     mySessionId = msg.sessionId;
+    if (msg.moveIndex !== undefined) currentMoveIndex = msg.moveIndex;
     const savedRaw = sessionStorage.getItem('activeGameMsg');
     if (savedRaw && msg.state) {
       const gameMsg = JSON.parse(savedRaw);
@@ -1248,6 +1252,13 @@ function handleMessage(msg) {
   }
 
   if (msg.type === 'error') {
+    // Токен истёк — перелогиниваемся автоматически
+    if (msg.code === 'TOKEN_EXPIRED') {
+      console.log('[AUTH] Token expired — re-logging in...');
+      myToken = null;
+      init();
+      return;
+    }
     toast('⚠ ' + msg.message);
   }
 
@@ -1501,6 +1512,7 @@ function startGame(msg) {
   gameOver = false;
   selected = null;
   hints = [];
+  currentMoveIndex = 0; // Сбрасываем для новой игры
   // Берём реальное время из state если есть (реконнект), иначе дефолт
   times = [
     (msg.whiteTime !== undefined) ? msg.whiteTime : 60,
@@ -1734,7 +1746,8 @@ function sendMove(fx, fy, tx, ty) {
   }
   ws.send(JSON.stringify({
     type: 'move',
-    move: { from: [fx, fy], to: [tx, ty] }
+    move: { from: [fx, fy], to: [tx, ty] },
+    moveIndex: currentMoveIndex
   }));
 }
 
