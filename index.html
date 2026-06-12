@@ -329,6 +329,61 @@ body {
 .custom-row input::placeholder { color: var(--tx3); }
 .custom-row span { font-size: 11px; color: var(--tx3); letter-spacing: 1px; }
 
+/* ─── OPEN BETS ─── */
+.bets-section { margin-bottom: 16px; }
+.bets-section .section-l { display: flex; align-items: center; justify-content: space-between; }
+.bets-refresh {
+  background: none; border: none; color: var(--tx3); cursor: pointer;
+  padding: 0; font-size: 13px; line-height: 1;
+}
+.bets-refresh:active { color: var(--red-bright); }
+.bets-list { display: flex; flex-direction: column; gap: 6px; }
+.bet-item {
+  background: var(--s1);
+  border: 0.5px solid var(--bdr);
+  border-radius: 4px;
+  padding: 10px 10px 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.bet-item.mine { border-color: var(--bdr-red); }
+.bet-item.mine::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2px; background: var(--red); border-radius: 4px 0 0 4px;
+}
+.bet-player { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bet-avatar {
+  width: 32px; height: 32px; border-radius: 2px; flex-shrink: 0;
+  background: var(--red-dim); border: 1px solid var(--red);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--red-bright); font-size: 13px; font-family: 'Engry', sans-serif;
+}
+.bet-info { min-width: 0; }
+.bet-name { font-size: 13px; color: var(--tx); font-family: 'Engry', sans-serif; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bet-meta { font-size: 10px; color: var(--tx3); margin-top: 2px; letter-spacing: 0.5px; }
+.bet-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.bet-stake { text-align: right; font-family: 'Engry', sans-serif; font-size: 15px; color: var(--tx); line-height: 1.2; }
+.bet-stake .cur { display: block; font-size: 8px; color: var(--tx3); letter-spacing: 1px; margin-top: 2px; font-family: 'Space Grotesk', sans-serif; }
+.bet-accept {
+  background: var(--red-dim); border: 0.5px solid var(--red); border-radius: 4px;
+  padding: 9px 14px; color: var(--tx); font-family: 'Engry', sans-serif;
+  font-size: 10px; letter-spacing: 1.5px; cursor: pointer; text-transform: uppercase;
+  white-space: nowrap;
+}
+.bet-accept:active { background: var(--red-glow); border-color: var(--red-bright); }
+.bet-accept.cancel { background: none; border-color: var(--bdr); color: var(--tx3); }
+.bet-accept.cancel:active { border-color: var(--red-bright); color: var(--red-bright); }
+.bets-empty {
+  text-align: center; font-size: 12px; color: var(--tx3);
+  padding: 18px 0; border: 0.5px dashed var(--bdr); border-radius: 4px;
+}
+.bets-empty span { display: block; font-size: 10px; margin-top: 4px; color: var(--tx3); letter-spacing: 1px; }
+
 /* ─── PLAY BUTTON ─── */
 .play-btn {
   width: 100%;
@@ -754,9 +809,419 @@ body {
     #0a0a0a 8px
   ) 8;
 }
+
+/* ===== ONBOARDING ===== */
+
+#bgCanvas{position:fixed;inset:0;display:block;width:100%;height:100%;z-index:0}
+
+#onboarding{
+  position:fixed;inset:0;z-index:10;
+  display:flex;flex-direction:column;align-items:center;
+  transition:opacity 0.5s ease;
+}
+#onboarding.hidden{opacity:0;pointer-events:none}
+
+#ob-wrap{position:relative;width:100%;max-width:460px;height:100%;display:flex;flex-direction:column;overflow:hidden}
+
+.ob-top{display:flex;justify-content:space-between;align-items:center;padding:22px 24px 0;flex-shrink:0}
+.ob-lang{display:flex;background:rgba(255,255,255,0.05);border-radius:4px;border:0.5px solid rgba(255,255,255,0.12);overflow:hidden;backdrop-filter:blur(10px)}
+.ob-lang button{background:none;border:none;color:rgba(255,255,255,0.35);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;letter-spacing:1.5px;padding:7px 16px;cursor:pointer;transition:all .15s}
+.ob-lang button.active{background:rgba(139,0,0,0.4);color:#f0f0f0}
+.ob-skip{background:none;border:none;color:rgba(255,255,255,0.3);font-family:inherit;font-size:12px;letter-spacing:1.5px;cursor:pointer;padding:6px 0;text-transform:uppercase}
+
+.ob-viewport{flex:1;overflow:hidden;position:relative}
+.ob-track{display:flex;height:100%;will-change:transform}
+.ob-slide{flex-shrink:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;text-align:center;gap:20px;box-sizing:border-box}
+
+.ob-hero-card{display:flex;flex-direction:column;align-items:center;gap:14px;background:rgba(8,8,8,0.55);border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:28px 16px;backdrop-filter:blur(10px);max-width:100%;width:100%;box-sizing:border-box;overflow:hidden}
+
+.ob-logo{font-family:'Engry',sans-serif;font-size:clamp(18px,6vw,30px);letter-spacing:clamp(1px,0.8vw,4px);text-transform:uppercase;color:#f4f4f4;text-shadow:0 2px 30px rgba(0,0,0,0.9);line-height:1.2;word-break:keep-all;max-width:100%}
+.ob-logo .dollar{color:#c0392b}
+
+.ob-tagline{font-family:'Space Grotesk',sans-serif;font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:4px;text-transform:uppercase;margin-top:-4px}
+
+.ob-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;line-height:1.3;color:#f4f4f4;text-shadow:0 2px 20px rgba(0,0,0,0.8)}
+.ob-title em{color:#c0392b;font-style:normal}
+
+.ob-desc{font-size:14.5px;color:rgba(255,255,255,0.6);line-height:1.7;max-width:300px;text-shadow:0 1px 12px rgba(0,0,0,0.6)}
+.ob-desc strong{color:rgba(255,255,255,0.92);font-weight:500}
+
+.ob-steps{display:flex;flex-direction:column;gap:14px;width:100%;max-width:300px}
+.ob-step{display:flex;align-items:flex-start;gap:14px;text-align:left;background:rgba(8,8,8,0.55);border:0.5px solid rgba(255,255,255,0.08);border-radius:6px;padding:14px 16px;backdrop-filter:blur(6px)}
+.ob-step-num{width:26px;height:26px;border-radius:50%;background:rgba(139,0,0,0.3);border:0.5px solid rgba(192,57,43,0.45);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#e07060;flex-shrink:0;margin-top:1px}
+.ob-step-text{font-size:13px;color:rgba(255,255,255,0.65);line-height:1.5}
+.ob-step-text strong{color:rgba(255,255,255,0.92);font-weight:500}
+
+.ob-contract-box{background:rgba(8,8,8,0.55);border:0.5px solid rgba(255,255,255,0.1);border-left:2px solid #8B0000;border-radius:0 6px 6px 0;padding:14px 16px;text-align:left;max-width:300px;width:100%;backdrop-filter:blur(6px)}
+.ob-contract-box .cb-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:4px}
+.ob-contract-box .cb-text{font-size:13px;color:rgba(255,255,255,0.68);line-height:1.5}
+.ob-contract-box .cb-text strong{color:rgba(255,255,255,0.92)}
+
+.ob-text-card{display:flex;flex-direction:column;align-items:center;gap:14px;background:rgba(8,8,8,0.55);border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:24px 22px;backdrop-filter:blur(10px);max-width:320px}
+
+.ob-bottom{padding:0 24px 36px;display:flex;flex-direction:column;align-items:center;gap:18px;flex-shrink:0}
+.ob-dots{display:flex;gap:8px;align-items:center}
+.ob-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.22);border:none;padding:0;cursor:pointer;transition:all .3s ease}
+.ob-dot.active{background:#c0392b;width:20px;border-radius:3px}
+
+.ob-next{width:100%;max-width:320px;padding:16px;background:#8B0000;border:none;border-radius:4px;font-family:'Engry',sans-serif;font-size:13px;letter-spacing:4px;color:#f4f4f4;cursor:pointer;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s,transform .1s;box-shadow:0 4px 24px rgba(139,0,0,0.35)}
+.ob-next:active{background:#a01515;transform:scale(0.98)}
 </style>
 </head>
 <body>
+
+<!-- ===== ONBOARDING ===== -->
+<div id="onboarding">
+  <canvas id="bgCanvas"></canvas>
+  <div id="ob-wrap">
+    <div class="ob-top">
+      <div class="ob-lang">
+        <button id="ob-ru" class="active" onclick="obSetLang('ru')">RU</button>
+        <button id="ob-en" onclick="obSetLang('en')">EN</button>
+      </div>
+      <button class="ob-skip" id="ob-skip" onclick="obFinish()"></button>
+    </div>
+
+    <div class="ob-viewport" id="ob-viewport">
+      <div class="ob-track" id="ob-track">
+
+        <!-- Slide 1: Hero -->
+        <div class="ob-slide">
+          <div class="ob-hero-card">
+            <div class="ob-logo">CHEKER<span class="dollar">$</span>GRAM</div>
+            <div class="ob-tagline" id="ob-tagline"></div>
+            <div class="ob-desc" id="ob-s1"></div>
+          </div>
+        </div>
+
+        <!-- Slide 2: How to play -->
+        <div class="ob-slide">
+          <div class="ob-text-card" style="padding:18px 28px">
+            <div class="ob-title" id="ob-s2t"></div>
+          </div>
+          <div class="ob-steps">
+            <div class="ob-step"><div class="ob-step-num">1</div><div class="ob-step-text" id="ob-st1"></div></div>
+            <div class="ob-step"><div class="ob-step-num">2</div><div class="ob-step-text" id="ob-st2"></div></div>
+            <div class="ob-step"><div class="ob-step-num">3</div><div class="ob-step-text" id="ob-st3"></div></div>
+          </div>
+        </div>
+
+        <!-- Slide 3: Wallet -->
+        <div class="ob-slide">
+          <div class="ob-text-card">
+            <div class="ob-title" id="ob-s3t"></div>
+            <div class="ob-desc" id="ob-s3d"></div>
+          </div>
+          <div class="ob-contract-box">
+            <div class="cb-label" id="ob-s3l"></div>
+            <div class="cb-text" id="ob-s3n"></div>
+          </div>
+        </div>
+
+        <!-- Slide 4: Checkers -->
+        <div class="ob-slide">
+          <div class="ob-text-card">
+            <div class="ob-title" id="ob-s4t"></div>
+            <div class="ob-desc" id="ob-s4d"></div>
+          </div>
+        </div>
+
+        <!-- Slide 5: Ready -->
+        <div class="ob-slide">
+          <div class="ob-text-card">
+            <div class="ob-title" id="ob-s5t"></div>
+            <div class="ob-desc" id="ob-s5d"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="ob-bottom">
+      <div class="ob-dots" id="ob-dots"></div>
+      <button class="ob-next" id="ob-next" onclick="obNext()"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Animated checkerboard background =====
+(function(){
+var c=document.getElementById('bgCanvas'),ctx=c.getContext('2d');
+var W,H,img,buf,zArr,fogArr,gT,gB,gL,gR;
+
+var hrzY=0.38;
+var flH=0.88;
+var wlD=0.82;
+var mxZ=55;
+var fNr=2.0;
+var fFr=28;
+var spd=0.3;
+var fvX=2.2;
+
+var lR=175,lG=175,lB=168;
+var dR=10,dG=10,dB=10;
+var fR=5,fG=5,fB=5;
+
+function init(){
+  W=window.innerWidth;H=window.innerHeight;
+  c.width=W;c.height=H;
+  img=ctx.createImageData(W,H);
+  buf=img.data;
+  zArr=new Float32Array(H);
+  fogArr=new Float32Array(H);
+
+  var band=Math.max(2,H*0.003);
+  var hT=hrzY-band/H,hB=hrzY+band/H;
+
+  for(var y=0;y<H;y++){
+    var s=y/H,z;
+    if(s>=hB)z=flH/(s-hrzY);
+    else if(s<=hT)z=wlD/(hrzY-s);
+    else z=mxZ;
+    if(z>mxZ)z=mxZ;
+    zArr[y]=z;
+    var f=(z-fNr)/(fFr-fNr);
+    f=f<0?0:f>1?1:f;
+    fogArr[y]=f*f;
+  }
+
+  gT=ctx.createLinearGradient(0,0,0,H*0.1);
+  gT.addColorStop(0,'rgba(5,5,5,0.7)');
+  gT.addColorStop(1,'rgba(5,5,5,0)');
+  gB=ctx.createLinearGradient(0,H*0.88,0,H);
+  gB.addColorStop(0,'rgba(5,5,5,0)');
+  gB.addColorStop(1,'rgba(5,5,5,0.55)');
+  gL=ctx.createLinearGradient(0,0,W*0.16,0);
+  gL.addColorStop(0,'rgba(5,5,5,0.3)');
+  gL.addColorStop(1,'rgba(5,5,5,0)');
+  gR=ctx.createLinearGradient(W*0.84,0,W,0);
+  gR.addColorStop(0,'rgba(5,5,5,0)');
+  gR.addColorStop(1,'rgba(5,5,5,0.3)');
+}
+init();
+window.addEventListener('resize',init);
+
+var t0=performance.now();
+
+function frame(){
+  var off=(performance.now()-t0)*0.001*spd;
+
+  for(var y=0;y<H;y++){
+    var z=zArr[y],fg=fogArr[y];
+    var rl=lR+(fR-lR)*fg|0,gl=lG+(fG-lG)*fg|0,bl=lB+(fB-lB)*fg|0;
+    var rd=dR+(fR-dR)*fg|0,gd=dG+(fG-dG)*fg|0,bd=dB+(fB-dB)*fg|0;
+
+    var wz=z+off;
+    var tzp=~~wz&1;
+    var sc=z*fvX;
+    var wxL=-0.5*sc;
+    var tL=Math.floor(wxL);
+    var tR=Math.ceil(0.5*sc);
+    var rb=y*W<<2;
+    var invSc=1/sc;
+
+    for(var t=tL;t<=tR;t++){
+      var sx0=(t*invSc+0.5)*W+0.5|0;
+      var sx1=((t+1)*invSc+0.5)*W+0.5|0;
+      if(sx0<0)sx0=0;if(sx1>W)sx1=W;
+      if(sx1<=sx0)continue;
+      var isL=((t&1)^tzp)===0;
+      var r,g,b;
+      if(isL){r=rl;g=gl;b=bl;}else{r=rd;g=gd;b=bd;}
+      for(var x=sx0;x<sx1;x++){
+        var i=rb+(x<<2);
+        buf[i]=r;buf[i+1]=g;buf[i+2]=b;buf[i+3]=255;
+      }
+    }
+  }
+
+  ctx.putImageData(img,0,0);
+  ctx.fillStyle=gT;ctx.fillRect(0,0,W,H*0.1);
+  ctx.fillStyle=gB;ctx.fillRect(0,H*0.88,W,H*0.12);
+  ctx.fillStyle=gL;ctx.fillRect(0,0,W*0.16,H);
+  ctx.fillStyle=gR;ctx.fillRect(W*0.84,0,W*0.16,H);
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+
+// ===== Onboarding slider =====
+(function() {
+  if (localStorage.getItem('ob_done')) {
+    document.getElementById('onboarding').remove();
+    return;
+  }
+
+  var TOTAL = 5;
+  var cur = 0;
+  var lang = 'ru';
+  var isDragging = false;
+  var dragStartX = 0;
+  var dragCurrentX = 0;
+  var dragThreshold = 50;
+
+  var track = document.getElementById('ob-track');
+  var viewport = document.getElementById('ob-viewport');
+  var dotsEl = document.getElementById('ob-dots');
+  var nextBtn = document.getElementById('ob-next');
+  var skipBtn = document.getElementById('ob-skip');
+
+  function getSlideWidth() { return viewport.offsetWidth; }
+
+  function setSlideWidths() {
+    var w = getSlideWidth();
+    var slides = track.querySelectorAll('.ob-slide');
+    track.style.width = (w * TOTAL) + 'px';
+    for (var i = 0; i < slides.length; i++) slides[i].style.width = w + 'px';
+    track.style.transition = 'none';
+    track.style.transform = 'translateX(-' + (cur * w) + 'px)';
+  }
+  window.addEventListener('resize', setSlideWidths);
+
+  for (var i = 0; i < TOTAL; i++) {
+    var d = document.createElement('button');
+    d.className = 'ob-dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('data-i', i);
+    d.onclick = function() { obGo(+this.getAttribute('data-i')); };
+    dotsEl.appendChild(d);
+  }
+
+  var T = {};
+  T.next   = { ru: 'Далее', en: 'Next' };
+  T.start  = { ru: 'Играть', en: 'Play' };
+  T.skip   = { ru: 'Пропустить', en: 'Skip' };
+  T.tagline= { ru: 'PVP · SMART CONTRACT · TELEGRAM', en: 'PVP · SMART CONTRACT · TELEGRAM' };
+  T.s1     = { ru: 'Шашки на ставку с реальными соперниками. Победил — забрал банк.', en: 'Checkers for stakes against real opponents. Win, take the pot.' };
+  T.s2t    = { ru: 'Как <em>играть</em>', en: 'How to <em>play</em>' };
+  T.st1    = { ru: '<strong>Выбери комнату</strong> — бесплатную или на ставку', en: '<strong>Pick a room</strong> — free or for stakes' };
+  T.st2    = { ru: '<strong>Матчмейкинг</strong> найдёт соперника за секунды', en: '<strong>Matchmaking</strong> finds an opponent in seconds' };
+  T.st3    = { ru: '<strong>Победи</strong> — весь банк твой минус 3% комиссии', en: '<strong>Win</strong> — the whole pot is yours, minus 3% fee' };
+  T.s3t    = { ru: 'GRAM <em>кошелёк</em>', en: 'GRAM <em>wallet</em>' };
+  T.s3d    = { ru: 'Подключи Tonkeeper или другой кошелёк для игры на ставку. Ставки хранит смарт-контракт.', en: 'Connect Tonkeeper or another wallet to play for stakes. Deposits are held by a smart contract.' };
+  T.s3l    = { ru: 'Принцип платформы', en: 'Platform principle' };
+  T.s3n    = { ru: '<strong>Мы не банк.</strong> Платформа физически не может удержать деньги — только ты или соперник.', en: '<strong>We are not a bank.</strong> The platform cannot hold your funds — only you or your opponent can.' };
+  T.s4t    = { ru: '<em>Шашки</em>', en: '<em>Checkers</em>' };
+  T.s4d    = { ru: 'Классика на новый лад. Выбирай ставку и садись за доску — первая игра уже доступна.', en: 'A classic, reimagined. Pick your stake and take a seat — the first game is ready now.' };
+  T.s5t    = { ru: '<em>Готов?</em>', en: '<em>Ready?</em>' };
+  T.s5d    = { ru: 'Арена ждёт. Выбери комнату и докажи что лучший.', en: 'The arena is waiting. Pick a room and prove you\'re the best.' };
+
+  var IDS = ['tagline','s1','s2t','st1','st2','st3','s3t','s3d','s3l','s3n','s4t','s4d','s5t','s5d'];
+
+  function updateLang() {
+    IDS.forEach(function(k) {
+      var el = document.getElementById('ob-' + k);
+      if (el) el.innerHTML = T[k][lang];
+    });
+    updateBtn();
+  }
+
+  function updateBtn() {
+    var last = cur === TOTAL - 1;
+    nextBtn.innerHTML = last ? T.start[lang] : T.next[lang] + ' →';
+    skipBtn.textContent = T.skip[lang];
+    skipBtn.style.visibility = last ? 'hidden' : 'visible';
+  }
+
+  function updateDots() {
+    dotsEl.querySelectorAll('.ob-dot').forEach(function(d, i) {
+      d.className = 'ob-dot' + (i === cur ? ' active' : '');
+    });
+  }
+
+  window.obGo = function(idx) {
+    cur = Math.max(0, Math.min(TOTAL - 1, idx));
+    var w = getSlideWidth();
+    track.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+    track.style.transform = 'translateX(-' + (cur * w) + 'px)';
+    updateDots();
+    updateBtn();
+  };
+
+  window.obNext = function() {
+    if (cur < TOTAL - 1) obGo(cur + 1); else obFinish();
+  };
+
+  window.obFinish = function() {
+    localStorage.setItem('ob_done', '1');
+    var el = document.getElementById('onboarding');
+    el.classList.add('hidden');
+    // Открываем лобби под онбордингом
+    if (typeof showScreen === 'function') showScreen('lobby');
+    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
+  };
+
+  window.obSetLang = function(l) {
+    lang = l;
+    document.getElementById('ob-ru').className = l === 'ru' ? 'active' : '';
+    document.getElementById('ob-en').className = l === 'en' ? 'active' : '';
+    updateLang();
+  };
+
+  var vp = document.getElementById('ob-viewport');
+
+  vp.addEventListener('touchstart', function(e) {
+    isDragging = true;
+    dragStartX = e.touches[0].clientX;
+    dragCurrentX = dragStartX;
+    track.style.transition = 'none';
+  }, { passive: true });
+
+  vp.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    dragCurrentX = e.touches[0].clientX;
+    var diff = dragCurrentX - dragStartX;
+    var w = getSlideWidth();
+    var baseX = cur * w;
+    if ((cur === 0 && diff > 0) || (cur === TOTAL - 1 && diff < 0)) diff = diff * 0.2;
+    track.style.transform = 'translateX(-' + (baseX - diff) + 'px)';
+  }, { passive: true });
+
+  vp.addEventListener('touchend', function(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    var diff = dragCurrentX - dragStartX;
+    if (Math.abs(diff) > dragThreshold) {
+      if (diff < 0 && cur < TOTAL - 1) obGo(cur + 1);
+      else if (diff > 0 && cur > 0) obGo(cur - 1);
+      else obGo(cur);
+    } else obGo(cur);
+  });
+
+  vp.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragCurrentX = dragStartX;
+    track.style.transition = 'none';
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    dragCurrentX = e.clientX;
+    var diff = dragCurrentX - dragStartX;
+    var w = getSlideWidth();
+    var baseX = cur * w;
+    if ((cur === 0 && diff > 0) || (cur === TOTAL - 1 && diff < 0)) diff = diff * 0.2;
+    track.style.transform = 'translateX(-' + (baseX - diff) + 'px)';
+  });
+  window.addEventListener('mouseup', function() {
+    if (!isDragging) return;
+    isDragging = false;
+    var diff = dragCurrentX - dragStartX;
+    if (Math.abs(diff) > dragThreshold) {
+      if (diff < 0 && cur < TOTAL - 1) obGo(cur + 1);
+      else if (diff > 0 && cur > 0) obGo(cur - 1);
+      else obGo(cur);
+    } else obGo(cur);
+  });
+
+  setTimeout(function() {
+    setSlideWidths();
+    updateLang();
+  }, 0);
+})();
+</script>
+<!-- ===== /ONBOARDING ===== -->
 
 <div id="conn-status" class="connecting"><i class="ti ti-wifi" style="font-size:11px;vertical-align:-1px" aria-hidden="true"></i> connecting</div>
 <div id="toast"></div>
@@ -766,7 +1231,7 @@ body {
   <!-- LOBBY -->
   <div id="lobby" class="screen active">
     <div class="logo">
-      <div class="logo-t">CHEKER<span>$</span>TON</div>
+      <div class="logo-t">CHEKER<span>$</span>GRAM</div>
       <div class="logo-s">stake &middot; play &middot; win</div>
     </div>
 
@@ -790,13 +1255,13 @@ body {
     <!-- Кошелёк подключён -->
     <div class="ton-card" id="ton-card">
       <div class="ton-card-top">
-        <span class="ton-label"><i class="ti ti-diamond" style="font-size:10px"></i> TON Кошелёк</span>
+        <span class="ton-label"><i class="ti ti-diamond" style="font-size:10px"></i> GRAM Кошелёк</span>
         <button class="ton-disconnect" onclick="disconnectWallet()">Отключить</button>
       </div>
       <div class="ton-addr" id="ton-addr">—</div>
       <div class="ton-bal-row">
         <span class="ton-bal" id="ton-bal">—</span>
-        <span class="ton-bal-cur" id="ton-bal-cur" style="display:none">TON</span>
+        <span class="ton-bal-cur" id="ton-bal-cur" style="display:none">GRAM</span>
         <button class="ton-eye" id="ton-eye" onclick="toggleTonBalance()">
           <span id="ton-eye-icon">показать</span>
         </button>
@@ -816,30 +1281,41 @@ body {
         <div class="room-val">Free</div><div class="stake-label">бесплатно</div><div class="stake-waiting empty" id="room-0">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="0.1" onclick="selectStake(0.1, this)">
-        <div class="room-val">0.1</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-0.1">&nbsp;</div>
+        <div class="room-val">0.1</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-0.1">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="0.5" onclick="selectStake(0.5, this)">
-        <div class="room-val">0.5</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-0.5">&nbsp;</div>
+        <div class="room-val">0.5</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-0.5">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="1" onclick="selectStake(1, this)">
-        <div class="room-val">1</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-1">&nbsp;</div>
+        <div class="room-val">1</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-1">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="5" onclick="selectStake(5, this)">
-        <div class="room-val">5</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-5">&nbsp;</div>
+        <div class="room-val">5</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-5">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="10" onclick="selectStake(10, this)">
-        <div class="room-val">10</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-10">&nbsp;</div>
+        <div class="room-val">10</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-10">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="50" onclick="selectStake(50, this)">
-        <div class="room-val">50</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-50">&nbsp;</div>
+        <div class="room-val">50</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-50">&nbsp;</div>
       </div>
       <div class="stake-btn" data-val="100" onclick="selectStake(100, this)">
-        <div class="room-val">100</div><div class="stake-label">TON</div><div class="stake-waiting empty" id="room-100">&nbsp;</div>
+        <div class="room-val">100</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-100">&nbsp;</div>
       </div>
     </div>
     <div class="custom-row">
       <input type="number" id="custom-input" placeholder="Своя сумма" min="0.1" max="10000" step="0.1" oninput="selectCustomStake(+this.value)">
-      <span>TON</span>
+      <span>GRAM</span>
+    </div>
+
+    <!-- ОТКРЫТЫЕ СТАВКИ -->
+    <div class="bets-section">
+      <div class="section-l">
+        <span>Открытые ставки</span>
+        <button class="bets-refresh" onclick="refreshOpenBets()" title="Обновить"><i class="ti ti-refresh" style="font-size:13px" aria-hidden="true"></i></button>
+      </div>
+      <div class="bets-list" id="bets-list">
+        <!-- рендерится через renderOpenBets() -->
+      </div>
     </div>
 
     <button class="play-btn" id="play-btn" onclick="findMatch()">
@@ -889,7 +1365,7 @@ body {
         <div class="pot-inner">
           <i class="ti ti-trophy" aria-hidden="true"></i>
           <div class="pot-val" id="pot-label">10</div>
-          <div class="pot-cur">TON</div>
+          <div class="pot-cur">GRAM</div>
         </div>
       </div>
       <div class="pcard" id="pcard2">
@@ -914,15 +1390,15 @@ body {
   <div id="result" class="screen">
     <div class="result-icon-wrap win" id="result-icon-wrap"><i class="ti ti-trophy" id="result-icon-i" aria-hidden="true"></i></div>
     <div class="result-title win" id="result-title">Победа!</div>
-    <div class="result-amount win" id="result-amount">+17 TON</div>
+    <div class="result-amount win" id="result-amount">+17 GRAM</div>
     <div class="result-sub" id="result-sub">Комиссия: 3%<br>Зачислено на баланс</div>
     <!-- Баланс кошелька на экране результата -->
     <div id="result-wallet" style="display:none;background:var(--s1);border:0.5px solid var(--bdr);border-radius:12px;padding:12px 16px;width:100%;box-sizing:border-box;text-align:left">
-      <div style="font-size:10px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">TON Кошелёк</div>
+      <div style="font-size:10px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">GRAM Кошелёк</div>
       <div style="font-size:12px;color:var(--tx2);font-family:monospace;margin-bottom:6px" id="result-wallet-addr">—</div>
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:20px;font-weight:600;color:#0098ea" id="result-wallet-bal">...</span>
-        <span id="result-wallet-cur" style="font-size:12px;color:var(--tx3)">TON</span>
+        <span id="result-wallet-cur" style="font-size:12px;color:var(--tx3)">GRAM</span>
         <button onclick="toggleResultBalance()" style="background:none;border:none;padding:0;color:var(--tx3);font-size:11px;font-family:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer"><span id="result-wallet-eye">скрыть</span></button>
       </div>
     </div>
@@ -1054,12 +1530,33 @@ function selectStake(val, btn) {
     btn.classList.add('selected');
     document.getElementById('custom-input').value = '';
   }
+  updatePlayBtn();
+  renderOpenBets();
 }
 
 function selectCustomStake(val) {
   if (val > 0) {
     selectedStake = val;
     document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
+    updatePlayBtn();
+    renderOpenBets();
+  }
+}
+
+// ─── PLAY BUTTON LABEL ───
+// Free (0) — старая логика: матчмейкинг сразу ищет соперника в общей очереди.
+// Ставка (>0) — нет смысла в "поиске по бакетам", т.к. ставки произвольные.
+// Вместо этого игрок публикует свою ставку в список "Открытые ставки",
+// и любой другой игрок может её принять (accept_bet).
+function updatePlayBtn() {
+  const btn = document.getElementById('play-btn');
+  if (!btn) return;
+  if (myOpenBetId) {
+    btn.innerHTML = '<i class="ti ti-x" style="font-size:18px" aria-hidden="true"></i> Снять ставку';
+  } else if (selectedStake === 0) {
+    btn.innerHTML = '<i class="ti ti-search" style="font-size:18px" aria-hidden="true"></i> Найти соперника';
+  } else {
+    btn.innerHTML = '<i class="ti ti-flag" style="font-size:18px" aria-hidden="true"></i> Создать ставку ' + selectedStake + ' GRAM';
   }
 }
 
@@ -1077,6 +1574,126 @@ function updateRoomCounts(rooms) {
       el.className = 'stake-waiting empty';
     }
   });
+}
+
+// ─── ОТКРЫТЫЕ СТАВКИ ───
+// TODO (backend): заменить мок-данные на реальные сообщения по WS:
+//   → клиент: { type: 'get_open_bets' }            — запросить список
+//   ← сервер: { type: 'open_bets_list', bets: [...] }  — { id, name, avatar, stake, ts }
+//   → клиент: { type: 'create_bet', stake }        — опубликовать свою ставку
+//   ← сервер: { type: 'bet_created', betId }       — подтверждение, запоминаем myOpenBetId
+//   → клиент: { type: 'accept_bet', betId }        — принять чужую ставку → matchmaking как обычно
+//   → клиент: { type: 'cancel_bet', betId }        — снять свою ставку
+//   ← сервер: { type: 'bet_accepted', betId }      — кто-то принял твою ставку → старт игры
+let myOpenBetId = null;
+
+// Демо-данные для превью UI (убрать после подключения бэкенда)
+let openBets = [
+  { id: 'demo1', name: 'Alex_K', avatar: 'A', stake: 0.5, ts: Date.now() - 40000 },
+  { id: 'demo2', name: 'maxim_ton', avatar: 'M', stake: 1, ts: Date.now() - 120000 },
+  { id: 'demo3', name: 'CryptoNik', avatar: 'C', stake: 5, ts: Date.now() - 200000 },
+];
+
+function timeAgo(ts) {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return sec + ' сек назад';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return min + ' мин назад';
+  return Math.floor(min / 60) + ' ч назад';
+}
+
+function renderOpenBets() {
+  const list = document.getElementById('bets-list');
+  if (!list) return;
+
+  // Показываем все ставки кроме своей. Свою — отдельным элементом наверху,
+  // если она создана (myOpenBetId).
+  const others = openBets.filter(b => b.id !== myOpenBetId);
+  const mine = openBets.find(b => b.id === myOpenBetId);
+
+  let html = '';
+
+  if (mine) {
+    html += `
+      <div class="bet-item mine">
+        <div class="bet-player">
+          <div class="bet-avatar">${mine.avatar}</div>
+          <div class="bet-info">
+            <div class="bet-name">Твоя ставка</div>
+            <div class="bet-meta">Ждём соперника · ${timeAgo(mine.ts)}</div>
+          </div>
+        </div>
+        <div class="bet-right">
+          <div class="bet-stake">${mine.stake}<span class="cur">GRAM</span></div>
+          <button class="bet-accept cancel" onclick="cancelOpenBet()">Снять</button>
+        </div>
+      </div>`;
+  }
+
+  if (others.length === 0 && !mine) {
+    html += `
+      <div class="bets-empty">
+        Пока нет открытых ставок
+        <span>Стань первым — создай свою ниже</span>
+      </div>`;
+  } else {
+    others.forEach(b => {
+      html += `
+        <div class="bet-item">
+          <div class="bet-player">
+            <div class="bet-avatar">${b.avatar}</div>
+            <div class="bet-info">
+              <div class="bet-name">${b.name}</div>
+              <div class="bet-meta">${timeAgo(b.ts)}</div>
+            </div>
+          </div>
+          <div class="bet-right">
+            <div class="bet-stake">${b.stake}<span class="cur">GRAM</span></div>
+            <button class="bet-accept" onclick="acceptOpenBet('${b.id}')">Принять</button>
+          </div>
+        </div>`;
+    });
+  }
+
+  list.innerHTML = html;
+}
+
+function refreshOpenBets() {
+  // TODO (backend): ws.send(JSON.stringify({ type: 'get_open_bets' }));
+  renderOpenBets();
+  toast('Обновлено');
+}
+
+function acceptOpenBet(betId) {
+  const bet = openBets.find(b => b.id === betId);
+  if (!bet) return;
+  // TODO (backend): ws.send(JSON.stringify({ type: 'accept_bet', betId }));
+  // Сервер должен: списать ставку у обоих игроков, задеплоить контракт,
+  // прислать deposit_required / match_found как при обычном матче.
+  toast('Принимаем ставку ' + bet.stake + ' GRAM...');
+  document.getElementById('search-stake').textContent = bet.stake + ' GRAM';
+  showScreen('searching');
+}
+
+function createOpenBet() {
+  if (selectedStake <= 0) return;
+  // TODO (backend): ws.send(JSON.stringify({ type: 'create_bet', stake: selectedStake }));
+  const id = 'mine_' + Date.now();
+  myOpenBetId = id;
+  openBets = openBets.filter(b => b.id !== myOpenBetId);
+  openBets.unshift({ id, name: 'Ты', avatar: '★', stake: selectedStake, ts: Date.now() });
+  updatePlayBtn();
+  renderOpenBets();
+  toast('Ставка ' + selectedStake + ' GRAM опубликована');
+}
+
+function cancelOpenBet() {
+  // TODO (backend): ws.send(JSON.stringify({ type: 'cancel_bet', betId: myOpenBetId }));
+  openBets = openBets.filter(b => b.id !== myOpenBetId);
+  myOpenBetId = null;
+  updatePlayBtn();
+  renderOpenBets();
+  toast('Ставка снята');
 }
 
 // ─── WEBSOCKET ───
@@ -1275,7 +1892,19 @@ function findMatch() {
   if (selectedStake === null || selectedStake === undefined || selectedStake < 0) { toast('Выбери комнату'); return; }
   if (!myToken) { toast('Подключение...'); init().then(findMatch); return; }
 
-  document.getElementById('search-stake').textContent = selectedStake === 0 ? 'Free' : selectedStake + ' TON';
+  // Ставка > 0 — у нас нет матчмейкинга по уникальным ставкам,
+  // поэтому работаем через "Открытые ставки" (см. createOpenBet/cancelOpenBet).
+  if (selectedStake > 0) {
+    if (myOpenBetId) {
+      cancelOpenBet();
+    } else {
+      createOpenBet();
+    }
+    return;
+  }
+
+  // Free (0 TON) — старый queue-based матчмейкинг, тут уникальность ставки не важна.
+  document.getElementById('search-stake').textContent = 'Free';
 
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     connectWS(() => {
@@ -1427,7 +2056,7 @@ function buildJoinGameBoc(opcode, gameId) {
 // ─── TON DEPOSIT ───
 function handleDepositRequired(msg) {
   if (!tonConnectUI || !walletAddress) {
-    toast('Подключи TON кошелёк для игры на ставку');
+    toast('Подключи GRAM кошелёк для игры на ставку');
     return;
   }
 
@@ -1444,7 +2073,7 @@ function handleDepositRequired(msg) {
   const JOINGAME_OPCODE = 0xaaa12027;
   const payload = buildJoinGameBoc(JOINGAME_OPCODE, gameId);
 
-  toast('Подтверди ставку ' + stakeTon + ' TON в кошельке', 6000);
+  toast('Подтверди ставку ' + stakeTon + ' GRAM в кошельке', 6000);
 
   tonConnectUI.sendTransaction({
     validUntil: Math.floor(Date.now() / 1000) + 300,
@@ -1456,7 +2085,7 @@ function handleDepositRequired(msg) {
       },
     ],
   }).then(() => {
-    toast('Ставка ' + stakeTon + ' TON внесена!');
+    toast('Ставка ' + stakeTon + ' GRAM внесена!');
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'deposit_confirmed', gameId: gameId }));
     }
@@ -1504,7 +2133,7 @@ function startGame(msg) {
   }
   myPot = msg.pot || selectedStake * 2;
   myStake = msg.myStake || selectedStake;
-  document.getElementById('pot-label').textContent = myPot + ' TON';
+  document.getElementById('pot-label').textContent = myPot + ' GRAM';
 
   board = state.board;
   currentPlayer = state.currentPlayer;
@@ -1825,17 +2454,17 @@ function endGame(winnerId) {
   const amountEl = document.getElementById('result-amount');
   amountEl.style.cssText = ''; // сбрасываем inline стили
   if (isWinner) {
-    amountEl.textContent = '+' + prize + ' TON';
+    amountEl.textContent = '+' + prize + ' GRAM';
     amountEl.className = 'result-amount win';
-    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' TON) · Банк: ' + pot + ' TON';
+    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' GRAM) · Банк: ' + pot + ' GRAM';
   } else if (isDraw) {
-    amountEl.textContent = 'Возврат: +' + loss + ' TON';
+    amountEl.textContent = 'Возврат: +' + loss + ' GRAM';
     amountEl.className = 'result-amount draw';
     document.getElementById('result-sub').textContent = 'Ничья — ставки возвращены';
   } else {
-    amountEl.textContent = '-' + loss + ' TON';
+    amountEl.textContent = '-' + loss + ' GRAM';
     amountEl.className = 'result-amount lose';
-    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' TON'
+    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' GRAM'
   }
 
   // Обновляем статистику с сервера
@@ -1917,7 +2546,7 @@ async function loadHistory() {
       const myStake = myIsWhite ? whiteStake : blackStake;
       const payout = (pot * 0.97).toFixed(2);
 
-      const resultText = isDraw ? '= Ничья' : isWin ? '+' + payout + ' TON' : '-' + myStake + ' TON';
+      const resultText = isDraw ? '= Ничья' : isWin ? '+' + payout + ' GRAM' : '-' + myStake + ' GRAM';
       const resultClass = isDraw ? 'hi-draw' : isWin ? 'hi-win' : 'hi-lose';
 
       // Дата
@@ -1933,7 +2562,7 @@ async function loadHistory() {
 
       const div = document.createElement('div');
       div.className = 'history-item';
-      div.innerHTML = `<div><div style="font-size:13px;font-weight:500">vs ${oppName}</div><div class="hi-vs">Банк: ${pot > 0 ? pot + ' TON' : '—'}</div><div class="hi-date">${dateStr}</div></div><div class="${resultClass}">${resultText}</div>`;
+      div.innerHTML = `<div><div style="font-size:13px;font-weight:500">vs ${oppName}</div><div class="hi-vs">Банк: ${pot > 0 ? pot + ' GRAM' : '—'}</div><div class="hi-date">${dateStr}</div></div><div class="${resultClass}">${resultText}</div>`;
       list.appendChild(div);
     });
   } catch(e) {
@@ -2120,7 +2749,7 @@ function rematch() {
   clearInterval(timerInterval);
   const stake = myStake > 0 ? myStake : selectedStake;
   showScreen('searching');
-  document.getElementById('search-stake').textContent = stake > 0 ? stake + ' TON' : 'Free';
+  document.getElementById('search-stake').textContent = stake > 0 ? stake + ' GRAM' : 'Free';
 
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     connectWS(() => {
@@ -2138,6 +2767,8 @@ if (_savedGameId) {
   mySessionId = _savedGameId;
 }
 init();
+renderOpenBets();
+updatePlayBtn();
 
 </script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/tabler-icons.min.css">
