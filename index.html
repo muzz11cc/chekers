@@ -1488,10 +1488,11 @@ async function init() {
     updateStats(data);
     loadHistory();
     connectWS();
-    // Опрашиваем комнаты каждые 3 секунды
+    // Опрашиваем комнаты и открытые ставки каждые 3 секунды
     setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'get_rooms' }));
+        ws.send(JSON.stringify({ type: 'get_open_bets' }));
       }
     }, 3000);
   } catch(e) {
@@ -1577,24 +1578,117 @@ function updateRoomCounts(rooms) {
 }
 
 // ─── ОТКРЫТЫЕ СТАВКИ ───
-// TODO (backend): заменить мок-данные на реальные сообщения по WS:
-//   → клиент: { type: 'get_open_bets' }            — запросить список
-//   ← сервер: { type: 'open_bets_list', bets: [...] }  — { id, name, avatar, stake, ts }
-//   → клиент: { type: 'create_bet', stake }        — опубликовать свою ставку
-//   ← сервер: { type: 'bet_created', betId }       — подтверждение, запоминаем myOpenBetId
-//   → клиент: { type: 'accept_bet', betId }        — принять чужую ставку → matchmaking как обычно
-//   → клиент: { type: 'cancel_bet', betId }        — снять свою ставку
-//   ← сервер: { type: 'bet_accepted', betId }      — кто-то принял твою ставку → старт игры
+// Реальный протокол по WS (см. серверную часть в openBets.ts):
+//   → клиент: { type: 'get_open_bets' }                — запросить список
+//   ← сервер: { type: 'open_bets_list', bets: [...] }  — { id, name, avatar, stake, ts, mine }
+//   → клиент: { type: 'create_bet', stake }            — опубликовать свою ставку
+//   ← сервер: { type: 'bet_created', betId }           — подтверждение, запоминаем myOpenBetId
+//   → клиент: { type: 'accept_bet', betId }            — принять чужую ставку
+//   → клиент: { type: 'cancel_bet', betId }            — снять свою ставку
+//   ← сервер: { type: 'bet_accepted', betId }          — кто-то принял твою ставку → дальше как обычный матч
+//   ← сервер: { type: 'bet_cancelled', betId }         — ставка снята (своя или чужая, например по таймауту)
 let myOpenBetId = null;
-
-// Демо-данные для превью UI (убрать после подключения бэкенда)
-let openBets = [
-  { id: 'demo1', name: 'Alex_K', avatar: 'A', stake: 0.5, ts: Date.now() - 40000 },
-  { id: 'demo2', name: 'maxim_ton', avatar: 'M', stake: 1, ts: Date.now() - 120000 },
-  { id: 'demo3', name: 'CryptoNik', avatar: 'C', stake: 5, ts: Date.now() - 200000 },
-];
+let openBets = [];
 
 function timeAgo(ts) {
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return sec + ' сек назад';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return min + ' мин назад';
+  return Math.floor(min / 60) + ' ч назад';
+}
+
+function renderOpenBets() {
+  const list = document.getElementById('bets-list');
+  if (!list) return;
+
+  // Показываем все ставки кроме своей. Свою — отдельным элементом наверху,
+  // если она создана (myOpenBetId).
+  const others = openBets.filter(b => b.id !== myOpenBetId);
+  const mine = openBets.find(b => b.id === myOpenBetId);
+
+  let html = '';
+
+  if (mine) {
+    html += `
+      <div class="bet-item mine">
+        <div class="bet-player">
+          <div class="bet-avatar">${mine.avatar}</div>
+          <div class="bet-info">
+            <div class="bet-name">Твоя ставка</div>
+            <div class="bet-meta">Ждём соперника · ${timeAgo(mine.ts)}</div>
+          </div>
+        </div>
+        <div class="bet-right">
+          <div class="bet-stake">${mine.stake}<span class="cur">GRAM</span></div>
+          <button class="bet-accept cancel" onclick="cancelOpenBet()">Снять</button>
+        </div>
+      </div>`;
+  }
+
+  if (others.length === 0 && !mine) {
+    html += `
+      <div class="bets-empty">
+        Пока нет открытых ставок
+        <span>Стань первым — создай свою ниже</span>
+      </div>`;
+  } else {
+    others.forEach(b => {
+      html += `
+        <div class="bet-item">
+          <div class="bet-player">
+            <div class="bet-avatar">${b.avatar}</div>
+            <div class="bet-info">
+              <div class="bet-name">${b.name}</div>
+              <div class="bet-meta">${timeAgo(b.ts)}</div>
+            </div>
+          </div>
+          <div class="bet-right">
+            <div class="bet-stake">${b.stake}<span class="cur">GRAM</span></div>
+            <button class="bet-accept" onclick="acceptOpenBet('${b.id}')">Принять</button>
+          </div>
+        </div>`;
+    });
+  }
+
+  list.innerHTML = html;
+}
+
+function refreshOpenBets() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'get_open_bets' }));
+  }
+  toast('Обновлено');
+}
+
+function acceptOpenBet(betId) {
+  const bet = openBets.find(b => b.id === betId);
+  if (!bet) return;
+  if (!ws || ws.readyState !== WebSocket.OPEN) { toast('Нет соединения'); return; }
+  ws.send(JSON.stringify({ type: 'accept_bet', betId }));
+  toast('Принимаем ставку ' + bet.stake + ' GRAM...');
+  document.getElementById('search-stake').textContent = bet.stake + ' GRAM';
+  showScreen('searching');
+}
+
+function createOpenBet() {
+  if (selectedStake <= 0) return;
+  if (!ws || ws.readyState !== WebSocket.OPEN) { toast('Нет соединения'); return; }
+  ws.send(JSON.stringify({ type: 'create_bet', stake: selectedStake }));
+  toast('Ставка ' + selectedStake + ' GRAM опубликована');
+}
+
+function cancelOpenBet() {
+  if (!myOpenBetId) return;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'cancel_bet', betId: myOpenBetId }));
+  }
+  openBets = openBets.filter(b => b.id !== myOpenBetId);
+  myOpenBetId = null;
+  updatePlayBtn();
+  renderOpenBets();
+  toast('Ставка снята');
+}
   const sec = Math.floor((Date.now() - ts) / 1000);
   if (sec < 60) return sec + ' сек назад';
   const min = Math.floor(sec / 60);
@@ -1833,6 +1927,48 @@ function handleMessage(msg) {
     updateRoomCounts(msg.rooms);
   }
 
+  // ─── ОТКРЫТЫЕ СТАВКИ ───
+  if (msg.type === 'open_bets_list') {
+    openBets = (msg.bets || []).map(b => ({
+      id: b.id,
+      name: b.name || ('Player ' + b.id),
+      avatar: (b.avatar || (b.name || '?')[0] || '?').toUpperCase(),
+      stake: b.stake,
+      ts: b.ts || Date.now(),
+    }));
+    // Если сервер помечает какая ставка моя — синхронизируем myOpenBetId
+    const mine = msg.bets && msg.bets.find(b => b.mine);
+    myOpenBetId = mine ? mine.id : (openBets.find(b => b.id === myOpenBetId) ? myOpenBetId : null);
+    updatePlayBtn();
+    renderOpenBets();
+  }
+
+  if (msg.type === 'bet_created') {
+    myOpenBetId = msg.betId;
+    updatePlayBtn();
+    // Список придёт следующим broadcast'ом (open_bets_list), но можно дорисовать сразу
+    if (!openBets.find(b => b.id === msg.betId)) {
+      openBets.unshift({ id: msg.betId, name: 'Ты', avatar: '★', stake: selectedStake, ts: Date.now() });
+    }
+    renderOpenBets();
+  }
+
+  if (msg.type === 'bet_cancelled') {
+    openBets = openBets.filter(b => b.id !== msg.betId);
+    if (myOpenBetId === msg.betId) myOpenBetId = null;
+    updatePlayBtn();
+    renderOpenBets();
+  }
+
+  if (msg.type === 'bet_accepted') {
+    // Кто-то принял нашу ставку — сервер дальше пришлёт deposit_required / match_found
+    openBets = openBets.filter(b => b.id !== msg.betId);
+    myOpenBetId = null;
+    updatePlayBtn();
+    toast('Твою ставку приняли!');
+    showScreen('searching');
+  }
+
   if (msg.type === 'reconnected') {
     mySessionId = msg.sessionId;
     if (msg.moveIndex !== undefined) currentMoveIndex = msg.moveIndex;
@@ -1857,6 +1993,9 @@ function handleMessage(msg) {
 
   if (msg.type === 'welcome' && msg.rooms) {
     updateRoomCounts(msg.rooms);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'get_open_bets' }));
+    }
   }
 
   if (msg.type === 'hold_failed') {
