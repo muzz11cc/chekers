@@ -985,7 +985,11 @@ function startMatchTimerLoop() {
 function startGameFromMsg(msg) {
   G.active = true;
   G.finished = false;
-  G.myPlayerIndex = msg.playerIndex || 2;
+  // Явная проверка playerIndex — || 2 маскировал отсутствие поля от сервера
+  G.myPlayerIndex = (msg.playerIndex === 1 || msg.playerIndex === 2) ? msg.playerIndex : 1;
+  if (msg.playerIndex !== 1 && msg.playerIndex !== 2) {
+    console.error('[GAME] playerIndex missing from server!', msg.playerIndex);
+  }
   G.board = msg.state.board;
   G.currentPlayer = msg.state.currentPlayer;
   G.forcedFrom = msg.state.forcedFrom || null;
@@ -998,11 +1002,9 @@ function startGameFromMsg(msg) {
   G.myStake = msg.myStake || 0;
   G.whiteTime = msg.whiteTime !== undefined ? msg.whiteTime : 60;
   G.blackTime = msg.blackTime !== undefined ? msg.blackTime : 60;
-  G.matchDeadline = msg.matchDeadline || null;
-  G.matchTimeLimitMs = msg.matchTimeLimitMs || G.matchTimeLimitMs;
-  if (!G.matchDeadline && G.matchTimeLimitMs) {
-    G.matchDeadline = Date.now() + G.matchTimeLimitMs;
-  }
+  // Явно сбрасываем matchTimeLimitMs — не накапливаем из предыдущей игры
+  G.matchTimeLimitMs = msg.matchTimeLimitMs || (20 * 60 * 1000);
+  G.matchDeadline = msg.matchDeadline || (Date.now() + G.matchTimeLimitMs);
   G.selected = null;
   G.hints = [];
 
