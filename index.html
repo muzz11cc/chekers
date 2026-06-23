@@ -845,8 +845,10 @@ function renderBoard() {
       let inner = '';
       const v = G.board[y]?.[x];
       if (v && !hint) {
-        const mine = isOwn(v, G.myPlayerIndex);
-        inner = `<div class="piece ${mine ? 'me' : 'opp'}${isKing(v) ? ' king' : ''}"></div>`;
+        // Цвет шашки = цвет игрока: player1=золотой(me), player2=красный(opp)
+        // Независимо от того кто смотрит — gold всегда gold, red всегда red
+        const isP1piece = (v === 1 || v === 3);
+        inner = `<div class="piece ${isP1piece ? 'me' : 'opp'}${isKing(v) ? ' king' : ''}"></div>`;
       }
       html += `<div class="${cls}" data-x="${x}" data-y="${y}">${inner}</div>`;
     }
@@ -985,11 +987,7 @@ function startMatchTimerLoop() {
 function startGameFromMsg(msg) {
   G.active = true;
   G.finished = false;
-  // Явная проверка playerIndex — || 2 маскировал отсутствие поля от сервера
   G.myPlayerIndex = (msg.playerIndex === 1 || msg.playerIndex === 2) ? msg.playerIndex : 1;
-  if (msg.playerIndex !== 1 && msg.playerIndex !== 2) {
-    console.error('[GAME] playerIndex missing from server!', msg.playerIndex);
-  }
   G.board = msg.state.board;
   G.currentPlayer = msg.state.currentPlayer;
   G.forcedFrom = msg.state.forcedFrom || null;
@@ -1002,7 +1000,6 @@ function startGameFromMsg(msg) {
   G.myStake = msg.myStake || 0;
   G.whiteTime = msg.whiteTime !== undefined ? msg.whiteTime : 60;
   G.blackTime = msg.blackTime !== undefined ? msg.blackTime : 60;
-  // Явно сбрасываем matchTimeLimitMs — не накапливаем из предыдущей игры
   G.matchTimeLimitMs = msg.matchTimeLimitMs || (20 * 60 * 1000);
   G.matchDeadline = msg.matchDeadline || (Date.now() + G.matchTimeLimitMs);
   G.selected = null;
