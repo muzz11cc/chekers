@@ -1,2915 +1,1503 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Checkers — Stake & Play</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
+<title>Cheker$GRAM</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/tabler-icons.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap"><style>
+<style>
+@keyframes sweep{0%{left:-70%}55%,100%{left:130%}}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+@keyframes radar-spin{to{transform:rotate(360deg)}}
+@keyframes radar-pulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:1}50%{transform:translate(-50%,-50%) scale(1.6);opacity:.3}}
+@keyframes dots{0%,25%{content:'.'}50%{content:'..'}75%,100%{content:'...'}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:#080C09;color:#f0f4f0;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    linear-gradient(45deg,rgba(255,255,255,.007) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.007) 75%),
+    linear-gradient(45deg,rgba(255,255,255,.007) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.007) 75%);
+  background-size:56px 56px;
+  background-position:0 0,28px 28px;
+}
+#app{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative;}
+.scr{display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.scr.act{display:block;}
+.pad{padding:14px 16px calc(68px + env(safe-area-inset-bottom,0px) + 20px) 16px;}
 
-@font-face {
-  font-family: 'Engry';
-  src: url('engry.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
+/* ═══ HEADER ═══ */
+.hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.hdr-logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(145deg,#1a2b1f,#0d1612);border:1px solid rgba(239,193,90,.25);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#EFC15A;flex-shrink:0;}
+.hdr-info{flex:1;}
+.hdr-title{font-size:18px;font-weight:900;color:#f0f4f0;letter-spacing:-.3px;}
+.hdr-title .dollar{color:#EFC15A;}
+.hdr-sub{font-size:9px;font-weight:700;color:rgba(255,255,255,.22);letter-spacing:2.5px;margin-top:1px;}
+.lang-sw{display:flex;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;}
+.lang-sw span{padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,.25);cursor:pointer;transition:.15s;}
+.lang-sw span.on{background:rgba(31,207,161,.15);color:#1FCFA1;}
 
-:root {
-  --bg: #080808;
-  --s1: #0f0f0f;
-  --s2: #141414;
-  --s3: #1a1a1a;
-  --bdr: #1e1e1e;
-  --bdr-red: #5a0a0a;
-  --tx: #e8e8e8;
-  --tx2: #888888;
-  --tx3: #444444;
-  --red: #8B0000;
-  --red-mid: #b01010;
-  --red-bright: #c0392b;
-  --red-dim: rgba(139,0,0,0.12);
-  --red-glow: rgba(139,0,0,0.25);
-  --green-win: #1a4a1a;
-  --green-bright: #2d8a2d;
-  --teal: #3dbaa2;
-  --danger: #c0392b;
-  --danger-dim: rgba(192,57,43,0.12);
-  --p1-color: #f0f0f0;
-  --p1-border: #cccccc;
-  --p2-color: #111111;
-  --p2-border: #333333;
-  --gold: #8B0000;
-  --gold-dim: rgba(139,0,0,0.1);
-  --gold-mid: rgba(139,0,0,0.2);
-}
+/* ═══ WALLET BANNER ═══ */
+.wallet-banner{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,rgba(31,207,161,.10),rgba(31,207,161,.03));border:1.5px solid rgba(31,207,161,.25);margin-bottom:16px;cursor:pointer;}
+.wallet-icon{width:38px;height:38px;border-radius:10px;background:rgba(31,207,161,.10);border:1px solid rgba(31,207,161,.22);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.wallet-icon svg{width:18px;height:18px;stroke:#1FCFA1;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.wallet-text{flex:1;}
+.wallet-text .wt1{font-size:15px;font-weight:700;color:#1FCFA1;}
+.wallet-text .wt2{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;}
+.wallet-arr{color:#1FCFA1;font-size:22px;font-weight:300;}
 
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
-@keyframes pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(139,0,0,0)} 50%{box-shadow:0 0 20px 4px rgba(139,0,0,0.4)} }
-@keyframes flicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.8} 94%{opacity:1} 96%{opacity:0.85} 97%{opacity:1} }
+/* ═══ BALANCE STATES ═══ */
+.bal-card{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;margin-bottom:16px;}
+.bal-card.zero{border:1px solid rgba(239,193,90,.15);background:linear-gradient(135deg,rgba(239,193,90,.04),rgba(239,193,90,.01));}
+.bal-card.has{border:1.5px solid rgba(239,193,90,.35);background:linear-gradient(135deg,rgba(239,193,90,.10),rgba(239,193,90,.03));box-shadow:0 4px 20px -8px rgba(239,193,90,.2);}
+.bal-icon{width:44px;height:44px;border-radius:12px;background:rgba(239,193,90,.08);border:1px solid rgba(239,193,90,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.bal-icon svg{width:20px;height:20px;stroke:#EFC15A;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.bal-info{flex:1;min-width:0;}
+.bal-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);letter-spacing:1.2px;}
+.bal-amount{font-size:26px;font-weight:900;color:#EFC15A;letter-spacing:-.5px;line-height:1.1;margin-top:2px;}
+.bal-card.zero .bal-amount{color:rgba(239,193,90,.4);}
+.bal-unit{font-size:13px;font-weight:700;color:rgba(255,255,255,.35);margin-left:5px;}
+.bal-hint{display:inline-block;margin-top:5px;font-size:10px;font-weight:600;color:#EFC15A;background:rgba(239,193,90,.08);border:1px solid rgba(239,193,90,.15);padding:3px 10px;border-radius:999px;}
+.bal-plus{width:40px;height:40px;border-radius:11px;background:rgba(239,193,90,.08);border:1px solid rgba(239,193,90,.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:400;color:#EFC15A;cursor:pointer;flex-shrink:0;}
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* ═══ HERO ═══ */
+.hero{border-radius:16px;padding:22px 20px 18px;margin-bottom:16px;background:linear-gradient(165deg,rgba(31,207,161,.04),rgba(239,193,90,.02) 40%,transparent 65%);border:1px solid rgba(255,255,255,.08);}
+.hero-title{font-size:26px;font-weight:900;color:#f0f4f0;letter-spacing:-.5px;line-height:1.1;}
+.hero-title .gold{color:#EFC15A;}
+.hero-sub{font-size:14px;font-weight:600;color:rgba(255,255,255,.35);margin-top:8px;line-height:1.4;}
+.hero-sub b{color:#1FCFA1;font-weight:700;}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;}
+.pill-online{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.45);}
+.pill-online .dot{width:7px;height:7px;border-radius:50%;background:#1FCFA1;box-shadow:0 0 6px #1FCFA1;animation:pulse-dot 1.8s ease-in-out infinite;flex-shrink:0;}
+.pill-online .num{color:#1FCFA1;font-weight:700;}
+.pill-pay{background:rgba(239,193,90,.05);border:1px solid rgba(239,193,90,.12);color:#EFC15A;}
 
-body {
-  background: var(--bg);
-  color: var(--tx);
-  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+/* ═══ HOW TO ═══ */
+.howto{border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.02);margin-bottom:18px;overflow:hidden;}
+.howto-head{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;width:100%;border:none;background:none;color:inherit;font:inherit;}
+.howto-ic{width:32px;height:32px;border-radius:9px;background:rgba(31,207,161,.08);border:1px solid rgba(31,207,161,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.howto-ic svg{width:15px;height:15px;stroke:#1FCFA1;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.howto-label{flex:1;font-size:15px;font-weight:700;color:#f0f4f0;text-align:left;}
+.howto-chev{color:rgba(255,255,255,.2);font-size:12px;transition:transform .25s;}
+.howto.open .howto-chev{transform:rotate(180deg);}
+.howto-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.howto.open .howto-body{max-height:500px;}
+.howto-inner{padding:0 16px 16px;}
+.howto-step{display:flex;gap:12px;padding:10px 0;border-top:1px solid rgba(255,255,255,.06);}
+.howto-step .step-icon{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;}
+.howto-step .step-text{font-size:13px;font-weight:500;color:rgba(255,255,255,.55);line-height:1.4;}
+.howto-foot{margin-top:8px;padding:10px 14px;border-radius:10px;background:rgba(239,193,90,.06);border:1px solid rgba(239,193,90,.12);font-size:12px;font-weight:600;color:#EFC15A;text-align:center;}
 
-#app { max-width: 420px; margin: 0 auto; }
+/* ═══ STAKES ═══ */
+.stakes-header{display:flex;justify-content:space-between;align-items:center;margin:0 2px 10px;}
+.stakes-header .left{font-size:10px;font-weight:800;color:rgba(255,255,255,.25);letter-spacing:1.5px;}
+.stakes-header .right{font-size:9px;font-weight:700;color:rgba(255,255,255,.13);letter-spacing:1px;}
+.stakes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;}
+.stake-chip{padding:14px 6px 10px;border-radius:14px;background:rgba(255,255,255,.025);border:1.5px solid rgba(255,255,255,.07);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:transform .1s;position:relative;}
+.stake-chip:active{transform:scale(.94);}
+.stake-coin{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;}
+.coin-free{font-size:13px;color:#04130e;background:linear-gradient(145deg,#1FCFA1,#17a882);border:2.5px solid rgba(31,207,161,.45);box-shadow:0 3px 10px -3px rgba(31,207,161,.35);}
+.coin-dark{background:linear-gradient(145deg,#2a2f2b,#1a1f1b);border:2.5px solid rgba(255,255,255,.10);font-size:19px;color:#f0f4f0;box-shadow:0 3px 8px -3px rgba(0,0,0,.5);}
+.coin-gold{background:linear-gradient(145deg,#EFC15A,#C88A20);border:2.5px solid rgba(239,193,90,.5);font-size:19px;color:#1a1400;box-shadow:0 0 14px -3px rgba(239,193,90,.45);}
+.stake-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.4);}
+.stake-price{font-size:9px;font-weight:500;color:rgba(255,255,255,.18);}
+.stake-chip.selected{background:rgba(239,193,90,.06);border:2px solid rgba(239,193,90,.6);box-shadow:0 0 0 1px rgba(239,193,90,.2),0 4px 16px -5px rgba(239,193,90,.3);}
+.stake-chip.selected .stake-label{color:#EFC15A;}
+.stake-chip.selected .stake-price{color:rgba(239,193,90,.45);}
+.stake-check{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:#EFC15A;color:#1a1400;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;box-shadow:0 2px 5px rgba(239,193,90,.3);}
 
-.screen { display: none; flex-direction: column; min-height: 100vh; padding: 16px 14px 24px; }
-.screen.active { display: flex; }
+/* ═══ CTA ═══ */
+.cta-btn{position:relative;width:100%;padding:16px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;letter-spacing:3px;overflow:hidden;cursor:pointer;border:none;font-family:inherit;transition:transform .1s;}
+.cta-btn:active{transform:scale(.98);}
+.cta-dark{background:#0a0e0b;color:#f0f4f0;border:1.5px solid rgba(31,207,161,.15);box-shadow:0 0 20px -5px rgba(31,207,161,.25),0 0 40px -10px rgba(31,207,161,.15);}
+.cta-green{background:linear-gradient(135deg,#1FCFA1,#0EA587);color:#04130e;box-shadow:0 6px 24px -6px rgba(31,207,161,.5);}
+.cta-gold{background:linear-gradient(135deg,#EFC15A,#C88A20);color:#1c1402;box-shadow:0 6px 24px -6px rgba(239,193,90,.5);}
+.cta-shine{position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);transform:skewX(-20deg);animation:sweep 3s ease-in-out infinite;left:-70%;pointer-events:none;}
+.cta-sub{text-align:center;margin-top:8px;font-size:12px;font-weight:600;color:rgba(255,255,255,.35);}
+.cta-sub b{color:#EFC15A;font-weight:800;}
+.footer-brand{text-align:center;font-size:10px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,.07);margin-top:18px;}
 
-/* ─── ENGRY FONT UTILITY ─── */
-.engry {
-  font-family: 'Engry', 'Space Grotesk', sans-serif;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
+/* ═══ TABBAR ═══ */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:50;height:calc(62px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);display:flex;background:rgba(8,12,9,.96);border-top:1px solid rgba(255,255,255,.06);}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(255,255,255,.22);cursor:pointer;border:none;background:none;font-family:inherit;transition:color .15s;}
+.tab-btn.on{color:#1FCFA1;}
+.tab-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.tab-btn span{font-size:10px;font-weight:600;}
 
-/* ─── LOGO ─── */
-.logo { text-align: center; padding: 20px 0 16px; position: relative; }
-.logo-t {
-  font-family: 'Engry', sans-serif;
-  font-size: 28px;
-  letter-spacing: 4px;
-  color: var(--tx);
-  text-transform: uppercase;
-  animation: flicker 8s infinite;
-}
-.logo-t span { color: var(--red-bright); }
-.logo-s {
-  font-size: 10px;
-  color: var(--tx3);
-  letter-spacing: 3px;
-  margin-top: 4px;
-  text-transform: uppercase;
-}
-.logo svg { display: none; }
+/* ═══ MATCHMAKING ═══ */
+.mm-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.radar{position:relative;width:200px;height:200px;margin-bottom:28px;}
+.radar-ring{position:absolute;border-radius:50%;border:1.5px solid rgba(31,207,161,.18);}
+.rr1{width:200px;height:200px;top:0;left:0;}
+.rr2{width:140px;height:140px;top:30px;left:30px;}
+.rr3{width:80px;height:80px;top:60px;left:60px;}
+.radar-sweep-el{position:absolute;top:0;left:0;width:200px;height:200px;border-radius:50%;overflow:hidden;animation:radar-spin 2s linear infinite;}
+.radar-sweep-el::after{content:'';position:absolute;top:50%;left:50%;width:100px;height:100px;background:conic-gradient(transparent,rgba(31,207,161,.35) 60deg,transparent 90deg);transform:translateX(-2px) translateY(-100%);}
+.radar-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,#1a2b1f,#0d1612);border:2px solid rgba(31,207,161,.4);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.radar-pulse-ring{position:absolute;top:50%;left:50%;width:56px;height:56px;border-radius:50%;border:2px solid rgba(31,207,161,.3);animation:radar-pulse 2s ease-in-out infinite;}
+.mm-stake-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:999px;background:rgba(239,193,90,.07);border:1px solid rgba(239,193,90,.2);color:#EFC15A;font-size:13px;font-weight:700;margin-bottom:20px;}
+.mm-title{font-size:18px;font-weight:800;color:#f0f4f0;margin-bottom:6px;text-align:center;}
+.mm-dots::after{content:'.';animation:dots 1.5s steps(1) infinite;}
+.mm-sub{font-size:12px;color:rgba(255,255,255,.3);text-align:center;margin-bottom:28px;}
+.mm-cancel-btn{padding:12px 36px;border-radius:12px;background:rgba(242,96,79,.08);border:1.5px solid rgba(242,96,79,.25);color:#F2604F;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;font-family:inherit;}
 
-/* ─── LOBBY BACKGROUND ─── */
-#lobby {
-  position: relative;
-  background:
-    linear-gradient(to bottom, rgba(8,8,8,0.85) 0%, rgba(8,8,8,0.6) 40%, rgba(8,8,8,0.92) 100%),
-    repeating-conic-gradient(#111 0% 25%, #0a0a0a 0% 50%) 0 0 / 40px 40px;
-  background-attachment: local;
-}
-#lobby::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background:
-    linear-gradient(to bottom, rgba(8,8,8,0.7) 0%, transparent 30%, transparent 70%, rgba(8,8,8,0.9) 100%),
-    repeating-conic-gradient(#0e0e0e 0% 25%, #080808 0% 50%) 0 0 / 44px 44px;
-  z-index: -1;
-  pointer-events: none;
-}
+/* ═══ GAME SCREEN ═══ */
+#app.in-game .tabbar{display:none;}
+.game-pad{padding:12px 12px 18px;max-width:420px;margin:0 auto;}
+.pcard-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.025);border:1.5px solid rgba(255,255,255,.07);margin-bottom:10px;}
+.pcard-row.me{background:rgba(31,207,161,.05);}
+.pcard-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+.pcard-avatar.opp{background:linear-gradient(145deg,#9b3a36,#6e2520);}
+.pcard-avatar.me{background:linear-gradient(145deg,#EFC15A,#C88A20);color:#1a1400;}
+.pcard-info{flex:1;min-width:0;}
+.pcard-name{display:flex;align-items:baseline;gap:5px;font-size:13.5px;font-weight:800;color:#f0f4f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pcard-name .myturn-tag{font-size:10px;font-weight:700;color:#1FCFA1;}
+.pcard-meta{font-size:10.5px;font-weight:600;color:rgba(255,255,255,.32);margin-top:1px;}
+.pcard-dots{display:flex;gap:3px;margin-right:8px;flex-shrink:0;}
+.pcard-dot{width:7px;height:7px;border-radius:50%;}
+.pcard-dot.opp{background:#c4514a;}
+.pcard-dot.me{background:#EFC15A;}
+.pcard-timer-wrap{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid rgba(255,255,255,.10);font-size:13px;font-weight:800;color:rgba(255,255,255,.5);font-variant-numeric:tabular-nums;}
+.pcard-timer-wrap.active{border-color:#1FCFA1;color:#1FCFA1;box-shadow:0 0 12px -2px rgba(31,207,161,.4);}
+.pcard-timer-wrap.low{border-color:#F2604F;color:#F2604F;}
 
-/* ─── USER BAR ─── */
-.user-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(10,10,10,0.9);
-  border-radius: 4px;
-  border: 0.5px solid var(--bdr-red);
-  padding: 12px 14px;
-  margin-bottom: 12px;
-  position: relative;
-}
-.user-bar::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 2px;
-  background: var(--red);
-  border-radius: 4px 0 0 4px;
-}
-.avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 2px;
-  background: var(--red-dim);
-  border: 1px solid var(--red);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--red-bright);
-  font-size: 15px;
-  font-weight: 500;
-  font-family: 'Engry', sans-serif;
-}
-.uname {
-  font-family: 'Engry', sans-serif;
-  font-size: 13px;
-  letter-spacing: 1px;
-  color: var(--tx);
-}
-.uid { font-size: 10px; color: var(--tx3); letter-spacing: 1px; margin-top: 2px; }
+.bank-bar{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-radius:12px;background:linear-gradient(135deg,rgba(239,193,90,.07),rgba(239,193,90,.015));border:1px solid rgba(239,193,90,.18);margin-bottom:12px;}
+.bank-bar .left .lbl{font-size:9px;font-weight:700;letter-spacing:1.2px;color:rgba(255,255,255,.3);}
+.bank-bar .left .val{font-size:17px;font-weight:900;color:#EFC15A;margin-top:1px;}
+.bank-bar .right{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);font-size:13px;font-weight:800;color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums;}
+.bank-bar .right svg{width:13px;height:13px;stroke:rgba(255,255,255,.4);fill:none;stroke-width:2;}
+.bank-bar .right.low{color:#F2604F;border-color:rgba(242,96,79,.3);background:rgba(242,96,79,.06);}
+.bank-bar .right.low svg{stroke:#F2604F;}
 
-/* ─── HISTORY ─── */
-.history-toggle {
-  width: 100%;
-  background: rgba(10,10,10,0.9);
-  border: 0.5px solid var(--bdr-red);
-  border-radius: 4px;
-  padding: 12px 16px;
-  color: var(--tx);
-  font-family: 'Engry', sans-serif;
-  font-size: 12px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-.history-item {
-  background: rgba(10,10,10,0.9);
-  border: 0.5px solid var(--bdr);
-  border-radius: 4px;
-  padding: 10px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.history-item .hi-vs { font-size: 11px; color: var(--tx3); margin-top: 2px; }
-.hi-date { font-size: 10px; color: var(--tx3); margin-top: 2px; }
-.hi-win { color: #2d8a2d; font-size: 13px; font-weight: 600; }
-.hi-lose { color: var(--red-bright); font-size: 13px; font-weight: 600; }
-.hi-draw { color: var(--tx2); font-size: 13px; }
-.clear-history-btn {
-  background: none;
-  border: 0.5px solid var(--bdr-red);
-  border-radius: 4px;
-  padding: 8px 16px;
-  color: var(--red-bright);
-  font-family: inherit;
-  font-size: 11px;
-  cursor: pointer;
-  margin-top: 6px;
-  width: 100%;
-  letter-spacing: 1px;
-}
+.board-frame{position:relative;border-radius:14px;padding:7px;background:linear-gradient(165deg,rgba(239,193,90,.12),rgba(31,207,161,.04));border:1px solid rgba(239,193,90,.2);margin-bottom:10px;}
+.board{display:grid;grid-template-columns:repeat(8,1fr);border-radius:8px;overflow:hidden;}
+.cell{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;}
+.cell.light{background:#e3d9ab;}
+.cell.dark{background:#1b3a2e;}
+.cell.dark.clickable{cursor:pointer;}
+.cell.sel{box-shadow:inset 0 0 0 3px #1FCFA1;}
+.cell.hint::after{content:'';width:24%;height:24%;border-radius:50%;background:rgba(31,207,161,.55);}
+.cell.hint.cap::after{width:30%;height:30%;background:#F2604F;}
+.piece{width:80%;height:80%;border-radius:50%;position:relative;}
+.piece.opp{background:#c4514a;border:2px solid #8f3a35;}
+.piece.me{background:#EFC15A;border:2px solid #b8862f;}
+.piece.king::before{content:'';position:absolute;inset:14%;border-radius:50%;border:2px solid rgba(255,255,255,.55);}
+.piece.king::after{content:'♛';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:55%;color:rgba(255,255,255,.85);}
 
-/* ─── WALLET CONNECT BTN ─── */
-.wallet-btn {
-  width: 100%;
-  padding: 13px;
-  border-radius: 4px;
-  font-family: 'Engry', sans-serif;
-  font-size: 12px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  text-transform: uppercase;
-}
-.wallet-btn.deposit {
-  background: var(--red-dim);
-  border: 0.5px solid var(--red);
-  color: var(--tx);
-}
-.wallet-btn.deposit:active { border-color: var(--red-bright); background: var(--red-glow); }
+.action-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:4px;}
+.act-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.55);font-family:inherit;font-size:10.5px;font-weight:700;letter-spacing:.5px;cursor:pointer;}
+.act-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.act-btn.danger{color:#F2604F;border-color:rgba(242,96,79,.18);}
+.act-btn:disabled{opacity:.35;cursor:default;}
+.game-foot{text-align:center;font-size:9px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,.07);margin-top:14px;}
 
-/* ─── TON WALLET CARD ─── */
-.ton-card {
-  background: rgba(10,10,10,0.9);
-  border: 0.5px solid var(--bdr-red);
-  border-radius: 4px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-  display: none;
-  position: relative;
-}
-.ton-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(to right, transparent, var(--red), transparent);
-}
-.ton-card.visible { display: block; }
-.ton-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.ton-label {
-  font-family: 'Engry', sans-serif;
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--tx3);
-  text-transform: uppercase;
-}
-.ton-disconnect {
-  background: none;
-  border: 0.5px solid var(--bdr-red);
-  border-radius: 3px;
-  padding: 4px 10px;
-  font-family: inherit;
-  font-size: 10px;
-  color: var(--tx3);
-  cursor: pointer;
-  letter-spacing: 1px;
-}
-.ton-disconnect:active { color: var(--red-bright); border-color: var(--red-bright); }
-.ton-addr { font-size: 11px; color: var(--tx3); font-family: monospace; word-break: break-all; margin-bottom: 6px; }
-.ton-bal-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-.ton-bal { font-size: 22px; font-weight: 600; color: #0098ea; font-family: 'Engry', sans-serif; letter-spacing: 1px; }
-.ton-bal-cur { font-size: 11px; color: var(--tx3); }
-.ton-eye {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--tx3);
-  cursor: pointer;
-  font-size: 10px;
-  font-family: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  letter-spacing: 1px;
-}
-.ton-connecting { font-size: 13px; color: var(--tx2); text-align: center; padding: 4px 0; }
+/* ═══ MODALS ═══ */
+.modal-ov{position:fixed;inset:0;background:rgba(3,5,4,.7);display:flex;align-items:flex-end;justify-content:center;z-index:300;opacity:0;pointer-events:none;transition:.2s;}
+.modal-ov.show{opacity:1;pointer-events:auto;}
+.modal-box{width:100%;max-width:420px;background:#0d1411;border-radius:18px 18px 0 0;border:1px solid rgba(255,255,255,.08);border-bottom:none;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(20px);transition:.2s;}
+.modal-ov.show .modal-box{transform:translateY(0);}
+.modal-title{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:800;color:#f0f4f0;margin-bottom:5px;}
+.modal-title svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.modal-title.danger{color:#F2604F;}
+.modal-title.accent{color:#EFC15A;}
+.modal-sub{font-size:12.5px;color:rgba(255,255,255,.4);margin-bottom:14px;line-height:1.4;}
+.modal-warn{padding:11px 13px;border-radius:11px;background:rgba(242,96,79,.07);border:1px solid rgba(242,96,79,.18);color:rgba(255,255,255,.6);font-size:12px;line-height:1.5;margin-bottom:14px;}
+.modal-warn b{color:#F2604F;}
+.modal-row{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:12.5px;color:rgba(255,255,255,.45);}
+.modal-row svg{width:15px;height:15px;stroke:rgba(255,255,255,.3);fill:none;stroke-width:2;flex-shrink:0;}
+.modal-row b{color:#f0f4f0;font-weight:700;}
+.modal-row b.danger{color:#F2604F;}
+.modal-btns{display:flex;gap:8px;margin-top:16px;}
+.modal-btn{flex:1;padding:13px;border-radius:11px;text-align:center;font-size:12.5px;font-weight:800;letter-spacing:1px;cursor:pointer;font-family:inherit;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:#f0f4f0;}
+.modal-btn.danger{background:rgba(242,96,79,.12);border-color:rgba(242,96,79,.3);color:#F2604F;}
+.modal-btn.accent{background:rgba(239,193,90,.12);border-color:rgba(239,193,90,.3);color:#EFC15A;}
+.modal-btn.green{background:rgba(31,207,161,.12);border-color:rgba(31,207,161,.3);color:#1FCFA1;}
 
-/* ─── ROOMS ─── */
-.section-l {
-  font-family: 'Engry', sans-serif;
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: var(--tx3);
-  text-transform: uppercase;
-  margin-bottom: 10px;
-  padding-left: 2px;
-}
-.stake-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px; }
-.stake-btn {
-  background: var(--s1);
-  border: 0.5px solid var(--bdr);
-  border-radius: 4px;
-  padding: 10px 6px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.15s;
-  position: relative;
-}
-.stake-btn:active { border-color: var(--red-bright); transform: scale(0.96); }
-.stake-btn.selected {
-  background: var(--red-dim);
-  border-color: var(--red);
-}
-.stake-btn .room-val {
-  font-family: 'Engry', sans-serif;
-  font-size: 14px;
-  letter-spacing: 1px;
-  color: var(--tx);
-}
-.stake-btn.selected .room-val { color: var(--tx); }
-.stake-btn .stake-label { font-size: 9px; color: var(--tx3); margin-top: 2px; letter-spacing: 1px; }
-.stake-waiting { font-size: 9px; color: var(--teal); margin-top: 3px; min-height: 12px; }
-.stake-waiting.empty { color: transparent; }
+.go-icon-wrap{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+.go-icon-wrap.win{background:rgba(31,207,161,.12);border:2px solid rgba(31,207,161,.3);}
+.go-icon-wrap.lose{background:rgba(242,96,79,.12);border:2px solid rgba(242,96,79,.3);}
+.go-icon-wrap.draw{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.15);}
+.go-icon-wrap svg{width:30px;height:30px;stroke-width:2;fill:none;}
+.go-icon-wrap.win svg{stroke:#1FCFA1;}
+.go-icon-wrap.lose svg{stroke:#F2604F;}
+.go-icon-wrap.draw svg{stroke:rgba(255,255,255,.6);}
+.go-title{text-align:center;font-size:21px;font-weight:900;margin-bottom:4px;}
+.go-title.win{color:#1FCFA1;}
+.go-title.lose{color:#F2604F;}
+.go-title.draw{color:rgba(255,255,255,.7);}
+.go-amount{text-align:center;font-size:30px;font-weight:900;margin:8px 0 4px;}
+.go-amount.win{color:#1FCFA1;}
+.go-amount.lose{color:#F2604F;}
+.go-amount.draw{color:#EFC15A;}
+.go-sub{text-align:center;font-size:12px;color:rgba(255,255,255,.35);margin-bottom:18px;}
 
-.custom-row { display: flex; gap: 6px; margin-bottom: 16px; align-items: center; }
-.custom-row input {
-  flex: 1;
-  background: var(--s1);
-  border: 0.5px solid var(--bdr);
-  border-radius: 4px;
-  padding: 11px 14px;
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--tx);
-  outline: none;
-}
-.custom-row input:focus { border-color: var(--red); }
-.custom-row input::placeholder { color: var(--tx3); }
-.custom-row span { font-size: 11px; color: var(--tx3); letter-spacing: 1px; }
+/* ═══ DRAW OFFER INCOMING TOAST-MODAL ═══ */
+.offer-box{display:flex;align-items:center;gap:12px;}
+.offer-info{flex:1;font-size:13px;font-weight:700;color:#f0f4f0;}
+.offer-info span{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.35);margin-top:2px;}
+.offer-btns{display:flex;gap:6px;}
+.offer-btn{padding:9px 14px;border-radius:9px;font-size:11px;font-weight:800;cursor:pointer;border:1px solid;font-family:inherit;}
+.offer-btn.yes{background:rgba(31,207,161,.12);border-color:rgba(31,207,161,.3);color:#1FCFA1;}
+.offer-btn.no{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.5);}
 
-/* ─── OPEN BETS ─── */
-.bets-section { margin-bottom: 16px; }
-.bets-section .section-l { display: flex; align-items: center; justify-content: space-between; }
-.bets-refresh {
-  background: none; border: none; color: var(--tx3); cursor: pointer;
-  padding: 0; font-size: 13px; line-height: 1;
-}
-.bets-refresh:active { color: var(--red-bright); }
-.bets-list { display: flex; flex-direction: column; gap: 6px; }
-.bet-item {
-  background: var(--s1);
-  border: 0.5px solid var(--bdr);
-  border-radius: 4px;
-  padding: 10px 10px 10px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  position: relative;
-  transition: border-color 0.15s;
-}
-.bet-item.mine { border-color: var(--bdr-red); }
-.bet-item.mine::before {
-  content: '';
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 2px; background: var(--red); border-radius: 4px 0 0 4px;
-}
-.bet-player { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.bet-avatar {
-  width: 32px; height: 32px; border-radius: 2px; flex-shrink: 0;
-  background: var(--red-dim); border: 1px solid var(--red);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--red-bright); font-size: 13px; font-family: 'Engry', sans-serif;
-}
-.bet-info { min-width: 0; }
-.bet-name { font-size: 13px; color: var(--tx); font-family: 'Engry', sans-serif; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bet-meta { font-size: 10px; color: var(--tx3); margin-top: 2px; letter-spacing: 0.5px; }
-.bet-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.bet-stake { text-align: right; font-family: 'Engry', sans-serif; font-size: 15px; color: var(--tx); line-height: 1.2; }
-.bet-stake .cur { display: block; font-size: 8px; color: var(--tx3); letter-spacing: 1px; margin-top: 2px; font-family: 'Space Grotesk', sans-serif; }
-.bet-accept {
-  background: var(--red-dim); border: 0.5px solid var(--red); border-radius: 4px;
-  padding: 9px 14px; color: var(--tx); font-family: 'Engry', sans-serif;
-  font-size: 10px; letter-spacing: 1.5px; cursor: pointer; text-transform: uppercase;
-  white-space: nowrap;
-}
-.bet-accept:active { background: var(--red-glow); border-color: var(--red-bright); }
-.bet-accept.cancel { background: none; border-color: var(--bdr); color: var(--tx3); }
-.bet-accept.cancel:active { border-color: var(--red-bright); color: var(--red-bright); }
-.bets-empty {
-  text-align: center; font-size: 12px; color: var(--tx3);
-  padding: 18px 0; border: 0.5px dashed var(--bdr); border-radius: 4px;
-}
-.bets-empty span { display: block; font-size: 10px; margin-top: 4px; color: var(--tx3); letter-spacing: 1px; }
+/* ═══ PLACEHOLDER ═══ */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:70vh;text-align:center;gap:10px;color:rgba(255,255,255,.2);padding:0 32px;}
+.placeholder .ph-icon{font-size:44px;opacity:.3;}
+.placeholder .ph-title{font-size:20px;font-weight:800;color:rgba(255,255,255,.35);}
+.placeholder .ph-desc{font-size:13px;}
 
-/* ─── PLAY BUTTON ─── */
-.play-btn {
-  width: 100%;
-  padding: 16px;
-  background: var(--red);
-  border: none;
-  border-radius: 4px;
-  font-family: 'Engry', sans-serif;
-  font-size: 14px;
-  letter-spacing: 3px;
-  color: var(--tx);
-  cursor: pointer;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: auto;
-  position: relative;
-  overflow: hidden;
-}
-.play-btn::before {
-  content: '';
-  position: absolute;
-  top: 0; left: -100%;
-  width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-  transition: left 0.4s;
-}
-.play-btn:active::before { left: 100%; }
-.play-btn:active { background: var(--red-mid); transform: scale(0.98); }
-.play-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+/* ═══ TOAST ═══ */
+#toast{position:fixed;left:50%;bottom:calc(72px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);z-index:999;background:rgba(13,18,16,.95);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 20px;font-size:13px;font-weight:600;color:#f0f4f0;opacity:0;pointer-events:none;transition:.25s;white-space:nowrap;max-width:90%;backdrop-filter:blur(8px);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* ─── SEARCHING ─── */
-#searching {
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  text-align: center;
-  background: var(--bg);
-  position: relative;
-}
-#searching::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-conic-gradient(#0e0e0e 0% 25%, #080808 0% 50%) 0 0 / 44px 44px;
-  z-index: -1;
-  opacity: 0.5;
-}
-.search-ring {
-  width: 72px; height: 72px;
-  border-radius: 50%;
-  border: 1px solid var(--bdr-red);
-  border-top-color: var(--red-bright);
-  animation: spin 1.5s linear infinite;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 20px rgba(139,0,0,0.3);
-}
-.search-ring i { font-size: 26px; color: var(--red-bright); animation: spin 1.5s linear infinite reverse; }
-.search-title {
-  font-family: 'Engry', sans-serif;
-  font-size: 20px;
-  letter-spacing: 3px;
-  color: var(--tx);
-}
-.search-sub { font-size: 12px; color: var(--tx2); letter-spacing: 1px; }
-.search-sub span { color: var(--red-bright); font-weight: 600; }
-.cancel-btn {
-  background: none;
-  border: 0.5px solid var(--bdr-red);
-  border-radius: 4px;
-  padding: 12px 40px;
-  color: var(--tx3);
-  font-family: 'Engry', sans-serif;
-  font-size: 11px;
-  letter-spacing: 2px;
-  cursor: pointer;
-  margin-top: 8px;
-}
-.cancel-btn:active { border-color: var(--red-bright); color: var(--tx); }
-
-/* ─── GAME SCREEN ─── */
-#game {
-  padding: 10px 10px 16px;
-  gap: 8px;
-  background: #050505;
-  position: relative;
-}
-
-.pbar { display: flex; gap: 6px; }
-.pcard {
-  flex: 1;
-  background: var(--s1);
-  border-radius: 4px;
-  border: 0.5px solid var(--bdr);
-  padding: 8px 10px;
-  transition: all 0.2s;
-}
-.pcard.myturn {
-  border-color: var(--red);
-  background: var(--red-dim);
-  box-shadow: 0 0 12px rgba(139,0,0,0.2);
-}
-.pcard-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
-.pchip { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid; flex-shrink: 0; }
-.pchip.white { background: #f0f0f0; border-color: #cccccc; }
-.pchip.black { background: #111111; border-color: #444444; }
-.pcard-name {
-  font-family: 'Engry', sans-serif;
-  font-size: 10px;
-  letter-spacing: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--tx2);
-}
-.pcard-timer {
-  font-family: 'Engry', sans-serif;
-  font-size: 22px;
-  letter-spacing: 2px;
-  color: var(--tx);
-}
-.pcard.myturn .pcard-timer { color: var(--tx); }
-.pcard-timer.low { color: var(--red-bright) !important; animation: blink 0.8s ease-in-out infinite; }
-
-.pot-center { display: flex; align-items: center; justify-content: center; padding: 0 4px; }
-.pot-inner { text-align: center; }
-.pot-inner i { font-size: 14px; color: var(--red-bright); }
-.pot-val {
-  font-family: 'Engry', sans-serif;
-  font-size: 16px;
-  letter-spacing: 1px;
-  color: var(--tx);
-  margin-top: 2px;
-}
-.pot-cur { font-size: 8px; color: var(--tx3); letter-spacing: 1px; }
-
-/* ─── BOARD ─── */
-.board-frame {
-  background: #0a0a0a;
-  border-radius: 4px;
-  border: 1px solid #1a1a1a;
-  padding: 6px;
-  position: relative;
-  /* Ornament border */
-  box-shadow:
-    inset 0 0 0 1px #111,
-    0 0 0 1px #1a1a1a,
-    0 0 20px rgba(0,0,0,0.8);
-}
-
-/* Ornament lines around board */
-.board-frame::before {
-  content: '';
-  position: absolute;
-  top: 3px; left: 3px; right: 3px; bottom: 3px;
-  border: 1px solid #222;
-  pointer-events: none;
-  z-index: 10;
-}
-
-#board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1px; }
-
-.cell {
-  aspect-ratio: 1;
-  border-radius: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-}
-.cell.light { background: #1a1a1a; }
-.cell.dark { background: #080808; }
-.cell.sel { background: rgba(139,0,0,0.25) !important; }
-.cell.hint { background: rgba(255,255,255,0.06) !important; }
-.cell.hint::after {
-  content: '';
-  position: absolute;
-  width: 28%;
-  height: 28%;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.3);
-  opacity: 0.6;
-}
-.cell.hint.capture::after { background: var(--red-bright); opacity: 0.7; }
-
-/* Шашки: белые и чёрные */
-.piece {
-  width: 78%;
-  height: 78%;
-  border-radius: 50%;
-  border: 2px solid;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s;
-  position: relative;
-  z-index: 1;
-  user-select: none;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.8);
-}
-.piece:active { transform: scale(0.92); }
-.piece.p1 {
-  background: radial-gradient(circle at 35% 35%, #ffffff, #d0d0d0);
-  border-color: #aaaaaa;
-}
-.piece.p2 {
-  background: radial-gradient(circle at 35% 35%, #2a2a2a, #080808);
-  border-color: #333333;
-}
-.piece.king::after {
-  content: '';
-  position: absolute;
-  width: 38%;
-  height: 38%;
-  border: 1.5px solid;
-  border-radius: 50%;
-  top: 50%; left: 50%;
-  transform: translate(-50%,-50%);
-}
-.piece.p1.king::after { border-color: #888888; }
-.piece.p2.king::after { border-color: #555555; }
-
-.captured-bar { display: flex; align-items: center; padding: 4px 8px; min-height: 28px; }
-.captured-side { display: flex; gap: 2px; flex: 1; }
-.captured-dot, .cap-piece { width: 10px; height: 10px; border-radius: 50%; opacity: 0.4; }
-.captured-dot.w, .cap-piece.p1 { background: #e0e0e0; }
-.captured-dot.b, .cap-piece.p2 { background: #333333; border: 1px solid #555; }
-
-.status-bar { text-align: center; font-size: 11px; color: var(--tx2); min-height: 16px; letter-spacing: 1px; }
-.status-bar.warn { color: var(--red-bright); }
-.status-bar.ok { color: #ffffff; }
-
-/* ─── DEPOSIT WAITING ─── */
-#deposit-waiting {
-  background: var(--bg);
-  position: relative;
-}
-#deposit-waiting::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-conic-gradient(#0e0e0e 0% 25%, #080808 0% 50%) 0 0 / 44px 44px;
-  z-index: -1;
-  opacity: 0.4;
-}
-
-/* ─── RESULT SCREEN ─── */
-#result {
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  min-height: 100vh;
-}
-
-/* WIN background */
-#result.win-bg {
-  background:
-    linear-gradient(to bottom, rgba(8,8,8,0.9) 0%, rgba(10,20,10,0.85) 50%, rgba(8,8,8,0.95) 100%),
-    repeating-conic-gradient(#0a120a 0% 25%, #080808 0% 50%) 0 0 / 44px 44px;
-}
-/* LOSE background */
-#result.lose-bg {
-  background:
-    linear-gradient(to bottom, rgba(8,8,8,0.9) 0%, rgba(20,5,5,0.85) 50%, rgba(8,8,8,0.95) 100%),
-    repeating-conic-gradient(#120a0a 0% 25%, #080808 0% 50%) 0 0 / 44px 44px;
-}
-
-.result-icon-wrap {
-  width: 80px; height: 80px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-.result-icon-wrap.win {
-  background: rgba(20,60,20,0.3);
-  border: 1px solid #2d5a2d;
-  color: #3a9a3a;
-  box-shadow: 0 0 30px rgba(40,120,40,0.3);
-}
-.result-icon-wrap.lose {
-  background: rgba(60,10,10,0.3);
-  border: 1px solid var(--red);
-  color: var(--red-bright);
-  box-shadow: 0 0 30px rgba(139,0,0,0.3);
-  animation: pulse-red 2s infinite;
-}
-.result-icon-wrap.draw {
-  background: rgba(30,30,30,0.5);
-  border: 1px solid #333;
-  color: var(--tx2);
-}
-.result-icon-wrap i { font-size: 32px; }
-
-.result-title {
-  font-family: 'Engry', sans-serif;
-  font-size: 32px;
-  letter-spacing: 5px;
-  text-transform: uppercase;
-}
-.result-title.win { color: #3a9a3a; }
-.result-title.lose { color: var(--red-bright); }
-.result-title.draw { color: var(--tx2); }
-
-.result-amount {
-  font-family: 'Engry', sans-serif;
-  font-size: 20px;
-  letter-spacing: 3px;
-  padding: 10px 28px;
-  border-radius: 4px;
-  display: inline-block;
-}
-.result-amount.win {
-  background: rgba(20,60,20,0.3);
-  color: #3a9a3a;
-  border: 0.5px solid #2d5a2d;
-}
-.result-amount.lose {
-  background: rgba(60,10,10,0.3);
-  color: var(--red-bright);
-  border: 0.5px solid var(--red);
-}
-.result-amount.draw {
-  background: rgba(30,30,30,0.3);
-  color: var(--tx2);
-  border: 0.5px solid #333;
-}
-
-.result-sub { font-size: 11px; color: var(--tx3); line-height: 1.8; letter-spacing: 1px; }
-
-.btn-main {
-  width: 100%;
-  padding: 15px;
-  background: var(--red);
-  border: none;
-  border-radius: 4px;
-  font-family: 'Engry', sans-serif;
-  font-size: 12px;
-  letter-spacing: 3px;
-  color: var(--tx);
-  cursor: pointer;
-  text-transform: uppercase;
-}
-.btn-main:active { background: var(--red-mid); border: 0.5px solid var(--red-bright); }
-
-.btn-sec {
-  width: 100%;
-  padding: 13px;
-  background: none;
-  border: 0.5px solid var(--bdr-red);
-  border-radius: 4px;
-  font-family: 'Engry', sans-serif;
-  font-size: 11px;
-  letter-spacing: 3px;
-  color: var(--tx3);
-  cursor: pointer;
-  text-transform: uppercase;
-}
-.btn-sec:active { border-color: var(--red-bright); color: var(--tx); }
-
-.result-btns { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px; }
-
-/* ─── CONNECTION STATUS ─── */
-#conn-status {
-  position: fixed;
-  top: 8px;
-  right: 12px;
-  font-size: 9px;
-  letter-spacing: 1px;
-  padding: 3px 10px;
-  border-radius: 2px;
-  z-index: 100;
-  font-family: 'Engry', sans-serif;
-  text-transform: uppercase;
-}
-#conn-status.connected { background: rgba(30,80,30,0.3); color: #3a9a3a; border: 0.5px solid #2d5a2d; }
-#conn-status.disconnected { background: var(--danger-dim); color: var(--red-bright); border: 0.5px solid var(--red); }
-#conn-status.connecting { background: rgba(20,20,20,0.5); color: var(--tx3); border: 0.5px solid var(--bdr); }
-
-/* ─── TOAST ─── */
-#toast {
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: var(--s2);
-  border: 0.5px solid var(--bdr-red);
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: var(--tx);
-  opacity: 0;
-  transition: all 0.3s;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 200;
-  font-family: 'Engry', sans-serif;
-}
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* ─── BOARD ORNAMENT (Prada-style border) ─── */
-.board-ornament {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none;
-  z-index: 5;
-  border: 8px solid transparent;
-  border-image: repeating-linear-gradient(
-    45deg,
-    #1a1a1a 0px,
-    #1a1a1a 4px,
-    #0a0a0a 4px,
-    #0a0a0a 8px
-  ) 8;
-}
-
-/* ===== ONBOARDING ===== */
-
-#bgCanvas{position:fixed;inset:0;display:block;width:100%;height:100%;z-index:0}
-
-#onboarding{
-  position:fixed;inset:0;z-index:10;
-  display:flex;flex-direction:column;align-items:center;
-  transition:opacity 0.5s ease;
-}
-#onboarding.hidden{opacity:0;pointer-events:none}
-
-#ob-wrap{position:relative;width:100%;max-width:460px;height:100%;display:flex;flex-direction:column;overflow:hidden}
-
-.ob-top{display:flex;justify-content:space-between;align-items:center;padding:22px 24px 0;flex-shrink:0}
-.ob-lang{display:flex;background:rgba(255,255,255,0.05);border-radius:4px;border:0.5px solid rgba(255,255,255,0.12);overflow:hidden;backdrop-filter:blur(10px)}
-.ob-lang button{background:none;border:none;color:rgba(255,255,255,0.35);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;letter-spacing:1.5px;padding:7px 16px;cursor:pointer;transition:all .15s}
-.ob-lang button.active{background:rgba(139,0,0,0.4);color:#f0f0f0}
-.ob-skip{background:none;border:none;color:rgba(255,255,255,0.3);font-family:inherit;font-size:12px;letter-spacing:1.5px;cursor:pointer;padding:6px 0;text-transform:uppercase}
-
-.ob-viewport{flex:1;overflow:hidden;position:relative}
-.ob-track{display:flex;height:100%;will-change:transform}
-.ob-slide{flex-shrink:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;text-align:center;gap:20px;box-sizing:border-box}
-
-.ob-hero-card{display:flex;flex-direction:column;align-items:center;gap:14px;background:rgba(8,8,8,0.55);border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:28px 16px;backdrop-filter:blur(10px);max-width:100%;width:100%;box-sizing:border-box;overflow:hidden}
-
-.ob-logo{font-family:'Engry',sans-serif;font-size:clamp(18px,6vw,30px);letter-spacing:clamp(1px,0.8vw,4px);text-transform:uppercase;color:#f4f4f4;text-shadow:0 2px 30px rgba(0,0,0,0.9);line-height:1.2;word-break:keep-all;max-width:100%}
-.ob-logo .dollar{color:#c0392b}
-
-.ob-tagline{font-family:'Space Grotesk',sans-serif;font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:4px;text-transform:uppercase;margin-top:-4px}
-
-.ob-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;text-transform:uppercase;line-height:1.3;color:#f4f4f4;text-shadow:0 2px 20px rgba(0,0,0,0.8)}
-.ob-title em{color:#c0392b;font-style:normal}
-
-.ob-desc{font-size:14.5px;color:rgba(255,255,255,0.6);line-height:1.7;max-width:300px;text-shadow:0 1px 12px rgba(0,0,0,0.6)}
-.ob-desc strong{color:rgba(255,255,255,0.92);font-weight:500}
-
-.ob-steps{display:flex;flex-direction:column;gap:14px;width:100%;max-width:300px}
-.ob-step{display:flex;align-items:flex-start;gap:14px;text-align:left;background:rgba(8,8,8,0.55);border:0.5px solid rgba(255,255,255,0.08);border-radius:6px;padding:14px 16px;backdrop-filter:blur(6px)}
-.ob-step-num{width:26px;height:26px;border-radius:50%;background:rgba(139,0,0,0.3);border:0.5px solid rgba(192,57,43,0.45);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#e07060;flex-shrink:0;margin-top:1px}
-.ob-step-text{font-size:13px;color:rgba(255,255,255,0.65);line-height:1.5}
-.ob-step-text strong{color:rgba(255,255,255,0.92);font-weight:500}
-
-.ob-contract-box{background:rgba(8,8,8,0.55);border:0.5px solid rgba(255,255,255,0.1);border-left:2px solid #8B0000;border-radius:0 6px 6px 0;padding:14px 16px;text-align:left;max-width:300px;width:100%;backdrop-filter:blur(6px)}
-.ob-contract-box .cb-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:4px}
-.ob-contract-box .cb-text{font-size:13px;color:rgba(255,255,255,0.68);line-height:1.5}
-.ob-contract-box .cb-text strong{color:rgba(255,255,255,0.92)}
-
-.ob-text-card{display:flex;flex-direction:column;align-items:center;gap:14px;background:rgba(8,8,8,0.55);border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;padding:24px 22px;backdrop-filter:blur(10px);max-width:320px}
-
-.ob-bottom{padding:0 24px 36px;display:flex;flex-direction:column;align-items:center;gap:18px;flex-shrink:0}
-.ob-dots{display:flex;gap:8px;align-items:center}
-.ob-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.22);border:none;padding:0;cursor:pointer;transition:all .3s ease}
-.ob-dot.active{background:#c0392b;width:20px;border-radius:3px}
-
-.ob-next{width:100%;max-width:320px;padding:16px;background:#8B0000;border:none;border-radius:4px;font-family:'Engry',sans-serif;font-size:13px;letter-spacing:4px;color:#f4f4f4;cursor:pointer;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s,transform .1s;box-shadow:0 4px 24px rgba(139,0,0,0.35)}
-.ob-next:active{background:#a01515;transform:scale(0.98)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 </style>
 </head>
 <body>
-
-<!-- ===== ONBOARDING ===== -->
-<div id="onboarding">
-  <canvas id="bgCanvas"></canvas>
-  <div id="ob-wrap">
-    <div class="ob-top">
-      <div class="ob-lang">
-        <button id="ob-ru" class="active" onclick="obSetLang('ru')">RU</button>
-        <button id="ob-en" onclick="obSetLang('en')">EN</button>
-      </div>
-      <button class="ob-skip" id="ob-skip" onclick="obFinish()"></button>
-    </div>
-
-    <div class="ob-viewport" id="ob-viewport">
-      <div class="ob-track" id="ob-track">
-
-        <!-- Slide 1: Hero -->
-        <div class="ob-slide">
-          <div class="ob-hero-card">
-            <div class="ob-logo">CHEKER<span class="dollar">$</span>GRAM</div>
-            <div class="ob-tagline" id="ob-tagline"></div>
-            <div class="ob-desc" id="ob-s1"></div>
-          </div>
-        </div>
-
-        <!-- Slide 2: How to play -->
-        <div class="ob-slide">
-          <div class="ob-text-card" style="padding:18px 28px">
-            <div class="ob-title" id="ob-s2t"></div>
-          </div>
-          <div class="ob-steps">
-            <div class="ob-step"><div class="ob-step-num">1</div><div class="ob-step-text" id="ob-st1"></div></div>
-            <div class="ob-step"><div class="ob-step-num">2</div><div class="ob-step-text" id="ob-st2"></div></div>
-            <div class="ob-step"><div class="ob-step-num">3</div><div class="ob-step-text" id="ob-st3"></div></div>
-          </div>
-        </div>
-
-        <!-- Slide 3: Wallet -->
-        <div class="ob-slide">
-          <div class="ob-text-card">
-            <div class="ob-title" id="ob-s3t"></div>
-            <div class="ob-desc" id="ob-s3d"></div>
-          </div>
-          <div class="ob-contract-box">
-            <div class="cb-label" id="ob-s3l"></div>
-            <div class="cb-text" id="ob-s3n"></div>
-          </div>
-        </div>
-
-        <!-- Slide 4: Checkers -->
-        <div class="ob-slide">
-          <div class="ob-text-card">
-            <div class="ob-title" id="ob-s4t"></div>
-            <div class="ob-desc" id="ob-s4d"></div>
-          </div>
-        </div>
-
-        <!-- Slide 5: Ready -->
-        <div class="ob-slide">
-          <div class="ob-text-card">
-            <div class="ob-title" id="ob-s5t"></div>
-            <div class="ob-desc" id="ob-s5d"></div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="ob-bottom">
-      <div class="ob-dots" id="ob-dots"></div>
-      <button class="ob-next" id="ob-next" onclick="obNext()"></button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ===== Animated checkerboard background =====
-(function(){
-var c=document.getElementById('bgCanvas'),ctx=c.getContext('2d');
-var W,H,img,buf,zArr,fogArr,gT,gB,gL,gR;
-
-var hrzY=0.38;
-var flH=0.88;
-var wlD=0.82;
-var mxZ=55;
-var fNr=2.0;
-var fFr=28;
-var spd=0.3;
-var fvX=2.2;
-
-var lR=175,lG=175,lB=168;
-var dR=10,dG=10,dB=10;
-var fR=5,fG=5,fB=5;
-
-function init(){
-  W=window.innerWidth;H=window.innerHeight;
-  c.width=W;c.height=H;
-  img=ctx.createImageData(W,H);
-  buf=img.data;
-  zArr=new Float32Array(H);
-  fogArr=new Float32Array(H);
-
-  var band=Math.max(2,H*0.003);
-  var hT=hrzY-band/H,hB=hrzY+band/H;
-
-  for(var y=0;y<H;y++){
-    var s=y/H,z;
-    if(s>=hB)z=flH/(s-hrzY);
-    else if(s<=hT)z=wlD/(hrzY-s);
-    else z=mxZ;
-    if(z>mxZ)z=mxZ;
-    zArr[y]=z;
-    var f=(z-fNr)/(fFr-fNr);
-    f=f<0?0:f>1?1:f;
-    fogArr[y]=f*f;
-  }
-
-  gT=ctx.createLinearGradient(0,0,0,H*0.1);
-  gT.addColorStop(0,'rgba(5,5,5,0.7)');
-  gT.addColorStop(1,'rgba(5,5,5,0)');
-  gB=ctx.createLinearGradient(0,H*0.88,0,H);
-  gB.addColorStop(0,'rgba(5,5,5,0)');
-  gB.addColorStop(1,'rgba(5,5,5,0.55)');
-  gL=ctx.createLinearGradient(0,0,W*0.16,0);
-  gL.addColorStop(0,'rgba(5,5,5,0.3)');
-  gL.addColorStop(1,'rgba(5,5,5,0)');
-  gR=ctx.createLinearGradient(W*0.84,0,W,0);
-  gR.addColorStop(0,'rgba(5,5,5,0)');
-  gR.addColorStop(1,'rgba(5,5,5,0.3)');
-}
-init();
-window.addEventListener('resize',init);
-
-var t0=performance.now();
-
-function frame(){
-  var off=(performance.now()-t0)*0.001*spd;
-
-  for(var y=0;y<H;y++){
-    var z=zArr[y],fg=fogArr[y];
-    var rl=lR+(fR-lR)*fg|0,gl=lG+(fG-lG)*fg|0,bl=lB+(fB-lB)*fg|0;
-    var rd=dR+(fR-dR)*fg|0,gd=dG+(fG-dG)*fg|0,bd=dB+(fB-dB)*fg|0;
-
-    var wz=z+off;
-    var tzp=~~wz&1;
-    var sc=z*fvX;
-    var wxL=-0.5*sc;
-    var tL=Math.floor(wxL);
-    var tR=Math.ceil(0.5*sc);
-    var rb=y*W<<2;
-    var invSc=1/sc;
-
-    for(var t=tL;t<=tR;t++){
-      var sx0=(t*invSc+0.5)*W+0.5|0;
-      var sx1=((t+1)*invSc+0.5)*W+0.5|0;
-      if(sx0<0)sx0=0;if(sx1>W)sx1=W;
-      if(sx1<=sx0)continue;
-      var isL=((t&1)^tzp)===0;
-      var r,g,b;
-      if(isL){r=rl;g=gl;b=bl;}else{r=rd;g=gd;b=bd;}
-      for(var x=sx0;x<sx1;x++){
-        var i=rb+(x<<2);
-        buf[i]=r;buf[i+1]=g;buf[i+2]=b;buf[i+3]=255;
-      }
-    }
-  }
-
-  ctx.putImageData(img,0,0);
-  ctx.fillStyle=gT;ctx.fillRect(0,0,W,H*0.1);
-  ctx.fillStyle=gB;ctx.fillRect(0,H*0.88,W,H*0.12);
-  ctx.fillStyle=gL;ctx.fillRect(0,0,W*0.16,H);
-  ctx.fillStyle=gR;ctx.fillRect(W*0.84,0,W*0.16,H);
-
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
-})();
-
-// ===== Onboarding slider =====
-(function() {
-  if (localStorage.getItem('ob_done')) {
-    document.getElementById('onboarding').remove();
-    return;
-  }
-
-  var TOTAL = 5;
-  var cur = 0;
-  var lang = 'ru';
-  var isDragging = false;
-  var dragStartX = 0;
-  var dragCurrentX = 0;
-  var dragThreshold = 50;
-
-  var track = document.getElementById('ob-track');
-  var viewport = document.getElementById('ob-viewport');
-  var dotsEl = document.getElementById('ob-dots');
-  var nextBtn = document.getElementById('ob-next');
-  var skipBtn = document.getElementById('ob-skip');
-
-  function getSlideWidth() { return viewport.offsetWidth; }
-
-  function setSlideWidths() {
-    var w = getSlideWidth();
-    var slides = track.querySelectorAll('.ob-slide');
-    track.style.width = (w * TOTAL) + 'px';
-    for (var i = 0; i < slides.length; i++) slides[i].style.width = w + 'px';
-    track.style.transition = 'none';
-    track.style.transform = 'translateX(-' + (cur * w) + 'px)';
-  }
-  window.addEventListener('resize', setSlideWidths);
-
-  for (var i = 0; i < TOTAL; i++) {
-    var d = document.createElement('button');
-    d.className = 'ob-dot' + (i === 0 ? ' active' : '');
-    d.setAttribute('data-i', i);
-    d.onclick = function() { obGo(+this.getAttribute('data-i')); };
-    dotsEl.appendChild(d);
-  }
-
-  var T = {};
-  T.next   = { ru: 'Далее', en: 'Next' };
-  T.start  = { ru: 'Играть', en: 'Play' };
-  T.skip   = { ru: 'Пропустить', en: 'Skip' };
-  T.tagline= { ru: 'PVP · SMART CONTRACT · TELEGRAM', en: 'PVP · SMART CONTRACT · TELEGRAM' };
-  T.s1     = { ru: 'Шашки на ставку с реальными соперниками. Победил — забрал банк.', en: 'Checkers for stakes against real opponents. Win, take the pot.' };
-  T.s2t    = { ru: 'Как <em>играть</em>', en: 'How to <em>play</em>' };
-  T.st1    = { ru: '<strong>Выбери комнату</strong> — бесплатную или на ставку', en: '<strong>Pick a room</strong> — free or for stakes' };
-  T.st2    = { ru: '<strong>Матчмейкинг</strong> найдёт соперника за секунды', en: '<strong>Matchmaking</strong> finds an opponent in seconds' };
-  T.st3    = { ru: '<strong>Победи</strong> — весь банк твой минус 3% комиссии', en: '<strong>Win</strong> — the whole pot is yours, minus 3% fee' };
-  T.s3t    = { ru: 'GRAM <em>кошелёк</em>', en: 'GRAM <em>wallet</em>' };
-  T.s3d    = { ru: 'Подключи Tonkeeper или другой кошелёк для игры на ставку. Ставки хранит смарт-контракт.', en: 'Connect Tonkeeper or another wallet to play for stakes. Deposits are held by a smart contract.' };
-  T.s3l    = { ru: 'Принцип платформы', en: 'Platform principle' };
-  T.s3n    = { ru: '<strong>Мы не банк.</strong> Платформа физически не может удержать деньги — только ты или соперник.', en: '<strong>We are not a bank.</strong> The platform cannot hold your funds — only you or your opponent can.' };
-  T.s4t    = { ru: '<em>Шашки</em>', en: '<em>Checkers</em>' };
-  T.s4d    = { ru: 'Классика на новый лад. Выбирай ставку и садись за доску — первая игра уже доступна.', en: 'A classic, reimagined. Pick your stake and take a seat — the first game is ready now.' };
-  T.s5t    = { ru: '<em>Готов?</em>', en: '<em>Ready?</em>' };
-  T.s5d    = { ru: 'Арена ждёт. Выбери комнату и докажи что лучший.', en: 'The arena is waiting. Pick a room and prove you\'re the best.' };
-
-  var IDS = ['tagline','s1','s2t','st1','st2','st3','s3t','s3d','s3l','s3n','s4t','s4d','s5t','s5d'];
-
-  function updateLang() {
-    IDS.forEach(function(k) {
-      var el = document.getElementById('ob-' + k);
-      if (el) el.innerHTML = T[k][lang];
-    });
-    updateBtn();
-  }
-
-  function updateBtn() {
-    var last = cur === TOTAL - 1;
-    nextBtn.innerHTML = last ? T.start[lang] : T.next[lang] + ' →';
-    skipBtn.textContent = T.skip[lang];
-    skipBtn.style.visibility = last ? 'hidden' : 'visible';
-  }
-
-  function updateDots() {
-    dotsEl.querySelectorAll('.ob-dot').forEach(function(d, i) {
-      d.className = 'ob-dot' + (i === cur ? ' active' : '');
-    });
-  }
-
-  window.obGo = function(idx) {
-    cur = Math.max(0, Math.min(TOTAL - 1, idx));
-    var w = getSlideWidth();
-    track.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
-    track.style.transform = 'translateX(-' + (cur * w) + 'px)';
-    updateDots();
-    updateBtn();
-  };
-
-  window.obNext = function() {
-    if (cur < TOTAL - 1) obGo(cur + 1); else obFinish();
-  };
-
-  window.obFinish = function() {
-    localStorage.setItem('ob_done', '1');
-    var el = document.getElementById('onboarding');
-    el.classList.add('hidden');
-    // Открываем лобби под онбордингом
-    if (typeof showScreen === 'function') showScreen('lobby');
-    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
-  };
-
-  window.obSetLang = function(l) {
-    lang = l;
-    document.getElementById('ob-ru').className = l === 'ru' ? 'active' : '';
-    document.getElementById('ob-en').className = l === 'en' ? 'active' : '';
-    updateLang();
-  };
-
-  var vp = document.getElementById('ob-viewport');
-
-  vp.addEventListener('touchstart', function(e) {
-    isDragging = true;
-    dragStartX = e.touches[0].clientX;
-    dragCurrentX = dragStartX;
-    track.style.transition = 'none';
-  }, { passive: true });
-
-  vp.addEventListener('touchmove', function(e) {
-    if (!isDragging) return;
-    dragCurrentX = e.touches[0].clientX;
-    var diff = dragCurrentX - dragStartX;
-    var w = getSlideWidth();
-    var baseX = cur * w;
-    if ((cur === 0 && diff > 0) || (cur === TOTAL - 1 && diff < 0)) diff = diff * 0.2;
-    track.style.transform = 'translateX(-' + (baseX - diff) + 'px)';
-  }, { passive: true });
-
-  vp.addEventListener('touchend', function(e) {
-    if (!isDragging) return;
-    isDragging = false;
-    var diff = dragCurrentX - dragStartX;
-    if (Math.abs(diff) > dragThreshold) {
-      if (diff < 0 && cur < TOTAL - 1) obGo(cur + 1);
-      else if (diff > 0 && cur > 0) obGo(cur - 1);
-      else obGo(cur);
-    } else obGo(cur);
-  });
-
-  vp.addEventListener('mousedown', function(e) {
-    isDragging = true;
-    dragStartX = e.clientX;
-    dragCurrentX = dragStartX;
-    track.style.transition = 'none';
-  });
-  window.addEventListener('mousemove', function(e) {
-    if (!isDragging) return;
-    dragCurrentX = e.clientX;
-    var diff = dragCurrentX - dragStartX;
-    var w = getSlideWidth();
-    var baseX = cur * w;
-    if ((cur === 0 && diff > 0) || (cur === TOTAL - 1 && diff < 0)) diff = diff * 0.2;
-    track.style.transform = 'translateX(-' + (baseX - diff) + 'px)';
-  });
-  window.addEventListener('mouseup', function() {
-    if (!isDragging) return;
-    isDragging = false;
-    var diff = dragCurrentX - dragStartX;
-    if (Math.abs(diff) > dragThreshold) {
-      if (diff < 0 && cur < TOTAL - 1) obGo(cur + 1);
-      else if (diff > 0 && cur > 0) obGo(cur - 1);
-      else obGo(cur);
-    } else obGo(cur);
-  });
-
-  setTimeout(function() {
-    setSlideWidths();
-    updateLang();
-  }, 0);
-})();
-</script>
-<!-- ===== /ONBOARDING ===== -->
-
-<div id="conn-status" class="connecting"><i class="ti ti-wifi" style="font-size:11px;vertical-align:-1px" aria-hidden="true"></i> connecting</div>
-<div id="toast"></div>
-
 <div id="app">
 
-  <!-- LOBBY -->
-  <div id="lobby" class="screen active">
-    <div class="logo">
-      <div class="logo-t">CHEKER<span>$</span>GRAM</div>
-      <div class="logo-s">stake &middot; play &middot; win</div>
-    </div>
+<!-- ═══════ LOBBY ═══════ -->
+<section class="scr act" id="scr-lobby">
+<div class="pad">
 
-    <div class="user-bar">
-      <div class="avatar" id="lobby-avatar">?</div>
-      <div>
-        <div class="uname" id="lobby-name">Loading...</div>
-        <div class="uid" id="lobby-id"></div>
-      </div>
+  <!-- Header -->
+  <header class="hdr">
+    <div class="hdr-logo">C</div>
+    <div class="hdr-info">
+      <div class="hdr-title">Cheker<span class="dollar">$</span>GRAM</div>
+      <div class="hdr-sub" data-i18n="sub">КЛАССИЧЕСКИЕ ШАШКИ</div>
     </div>
+    <div class="lang-sw">
+      <span class="on" data-lang="ru">RU</span>
+      <span data-lang="en">EN</span>
+    </div>
+  </header>
 
-    <div id="history-section" style="margin-bottom:12px">
-      <button class="history-toggle" onclick="toggleHistory()">
-        <span>История игр</span><span id="history-arrow"><i class="ti ti-chevron-down" style="font-size:14px" aria-hidden="true"></i></span>
-      </button>
-      <div id="history-list" style="display:none;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto"></div>
-      <button id="clear-history-btn" class="clear-history-btn" style="display:none" onclick="clearHistory()">Очистить историю</button>
-    </div>
+  <!-- Balance area (dynamic) -->
+  <div id="balArea"></div>
 
-    <!-- TON кошелёк -->
-    <!-- Кошелёк подключён -->
-    <div class="ton-card" id="ton-card">
-      <div class="ton-card-top">
-        <span class="ton-label"><i class="ti ti-diamond" style="font-size:10px"></i> GRAM Кошелёк</span>
-        <button class="ton-disconnect" onclick="disconnectWallet()">Отключить</button>
-      </div>
-      <div class="ton-addr" id="ton-addr">—</div>
-      <div class="ton-bal-row">
-        <span class="ton-bal" id="ton-bal">—</span>
-        <span class="ton-bal-cur" id="ton-bal-cur" style="display:none">GRAM</span>
-        <button class="ton-eye" id="ton-eye" onclick="toggleTonBalance()">
-          <span id="ton-eye-icon">показать</span>
-        </button>
-      </div>
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-title"><span data-i18n="hero1">Шашки на</span> <span class="gold">GRAM</span></div>
+    <div class="hero-sub"><b>Stake</b> · <b>Play</b> · <b>Win</b> — <span data-i18n="hero2">победитель забирает банк</span></div>
+    <div class="pills">
+      <span class="pill pill-online"><span class="dot"></span><span class="num" id="onlineNum">0</span>&nbsp;<span data-i18n="online">онлайн</span></span>
+      <span class="pill pill-pay">⚡ <span data-i18n="instant">Мгновенные выплаты</span></span>
     </div>
+  </div>
 
-    <!-- Кошелёк не подключён -->
-    <div id="wallet-connect-row" style="margin-bottom:16px">
-      <button class="wallet-btn deposit" id="wallet-connect-btn" onclick="onConnectWallet()" style="width:100%">
-        <i class="ti ti-wallet" style="font-size:16px" aria-hidden="true"></i> Подключить кошелёк
-      </button>
+  <!-- How to play -->
+  <div class="howto" id="howto">
+    <button class="howto-head" id="howtoHead">
+      <span class="howto-ic"><svg viewBox="0 0 24 24"><path d="M2 16.1A5 5 0 0 1 5.9 20M2 12A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/></svg></span>
+      <span class="howto-label" data-i18n="howto">Как играть в Cheker$</span>
+      <span class="howto-chev">▼</span>
+    </button>
+    <div class="howto-body">
+      <div class="howto-inner">
+        <div class="howto-step"><div class="step-icon">💳</div><div class="step-text" data-i18n="ht1">Подключи кошелёк — TonConnect за пару нажатий</div></div>
+        <div class="howto-step"><div class="step-icon">🎯</div><div class="step-text" data-i18n="ht2">Выбери ставку — от Free до 15 GRAM</div></div>
+        <div class="howto-step"><div class="step-icon">⚔️</div><div class="step-text" data-i18n="ht3">Найди соперника → победитель забирает почти весь банк</div></div>
+        <div class="howto-step"><div class="step-icon">🔐</div><div class="step-text" data-i18n="ht4">Смарт-контракты TON — честно и прозрачно</div></div>
+        <div class="howto-foot" data-i18n="htf">💲 Комиссия 3% от банка — 97% уходит победителю</div>
+      </div>
     </div>
+  </div>
 
-    <div class="section-l">Выбери комнату</div>
-    <div class="stake-grid" id="stake-grid">
-      <div class="stake-btn selected" data-val="0" onclick="selectStake(0, this)">
-        <div class="room-val">Free</div><div class="stake-label">бесплатно</div><div class="stake-waiting empty" id="room-0">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="0.1" onclick="selectStake(0.1, this)">
-        <div class="room-val">0.1</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-0.1">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="0.5" onclick="selectStake(0.5, this)">
-        <div class="room-val">0.5</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-0.5">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="1" onclick="selectStake(1, this)">
-        <div class="room-val">1</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-1">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="5" onclick="selectStake(5, this)">
-        <div class="room-val">5</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-5">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="10" onclick="selectStake(10, this)">
-        <div class="room-val">10</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-10">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="50" onclick="selectStake(50, this)">
-        <div class="room-val">50</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-50">&nbsp;</div>
-      </div>
-      <div class="stake-btn" data-val="100" onclick="selectStake(100, this)">
-        <div class="room-val">100</div><div class="stake-label">GRAM</div><div class="stake-waiting empty" id="room-100">&nbsp;</div>
-      </div>
-    </div>
-    <div class="custom-row">
-      <input type="number" id="custom-input" placeholder="Своя сумма" min="0.1" max="10000" step="0.1" oninput="selectCustomStake(+this.value)">
-      <span>GRAM</span>
-    </div>
+  <!-- Stakes -->
+  <div class="stakes-header">
+    <span class="left" data-i18n="pick">ВЫБЕРИ СТАВКУ</span>
+    <span class="right" data-i18n="bank">БАНК = СТАВКА X2</span>
+  </div>
+  <div class="stakes-grid" id="stakesGrid"></div>
 
-    <!-- ОТКРЫТЫЕ СТАВКИ -->
-    <div class="bets-section">
-      <div class="section-l">
-        <span>Открытые ставки</span>
-        <button class="bets-refresh" onclick="refreshOpenBets()" title="Обновить"><i class="ti ti-refresh" style="font-size:13px" aria-hidden="true"></i></button>
-      </div>
-      <div class="bets-list" id="bets-list">
-        <!-- рендерится через renderOpenBets() -->
-      </div>
-    </div>
+  <!-- CTA -->
+  <button class="cta-btn cta-dark" id="ctaBtn">
+    <div class="cta-shine"></div>
+    <span id="ctaText">НАЙТИ СОПЕРНИКА</span>
+  </button>
+  <div class="cta-sub" id="ctaSub"></div>
+  <div class="footer-brand">ARXRA</div>
 
-    <button class="play-btn" id="play-btn" onclick="findMatch()">
-      <i class="ti ti-search" style="font-size:18px" aria-hidden="true"></i> Найти соперника
+</div>
+</section>
+
+<!-- ═══════ MATCHMAKING ═══════ -->
+<section class="scr" id="scr-mm">
+<div class="mm-wrap">
+  <div class="radar">
+    <div class="radar-ring rr1"></div>
+    <div class="radar-ring rr2"></div>
+    <div class="radar-ring rr3"></div>
+    <div class="radar-sweep-el"></div>
+    <div class="radar-pulse-ring"></div>
+    <div class="radar-center">👤</div>
+  </div>
+  <div class="mm-stake-pill" id="mmStakePill">FREE</div>
+  <div class="mm-title"><span data-i18n="searching">Поиск соперника</span><span class="mm-dots"></span></div>
+  <div class="mm-sub" data-i18n="search_sub">Обычно находим за несколько секунд</div>
+  <button class="mm-cancel-btn" id="mmCancel" data-i18n="cancel">ОТМЕНИТЬ</button>
+</div>
+</section>
+
+<!-- ═══════ GAME ═══════ -->
+<section class="scr" id="scr-game">
+<div class="game-pad">
+
+  <div class="pcard-row opp" id="oppCard">
+    <div class="pcard-avatar opp" id="oppAvatar">?</div>
+    <div class="pcard-info">
+      <div class="pcard-name" id="oppName">Соперник</div>
+      <div class="pcard-meta" id="oppMeta">&nbsp;</div>
+    </div>
+    <div class="pcard-dots" id="oppDots"></div>
+    <div class="pcard-timer-wrap" id="oppTimer">1:00</div>
+  </div>
+
+  <div class="bank-bar">
+    <div class="left">
+      <div class="lbl" data-i18n="g_bank">БАНК</div>
+      <div class="val" id="gBankVal">0 GRAM</div>
+    </div>
+    <div class="right" id="gMatchTimer">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span id="gMatchTimerVal">20:00</span>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:9px;color:rgba(255,255,255,.25);margin-bottom:6px;" id="dbgLine">DEBUG</div>
+
+  <div class="board-frame">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="pcard-row me" id="meCard">
+    <div class="pcard-avatar me" id="meAvatar">?</div>
+    <div class="pcard-info">
+      <div class="pcard-name" id="meName">Ты <span class="myturn-tag" id="meTurnTag"></span></div>
+      <div class="pcard-meta" id="meMeta">&nbsp;</div>
+    </div>
+    <div class="pcard-dots" id="meDots"></div>
+    <div class="pcard-timer-wrap" id="meTimer">1:00</div>
+  </div>
+
+  <div class="action-row">
+    <button class="act-btn" id="drawBtn">
+      <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      <span data-i18n="g_draw">НИЧЬЯ</span>
+    </button>
+    <button class="act-btn" id="chatBtn" disabled>
+      <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span data-i18n="g_chat">ЧАТ</span>
+    </button>
+    <button class="act-btn danger" id="resignBtn">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <span data-i18n="g_resign">СДАТЬСЯ</span>
     </button>
   </div>
 
-  <!-- SEARCHING -->
-  <div id="searching" class="screen">
-    <div class="search-ring"><i class="ti ti-chess" aria-hidden="true"></i></div>
-    <div class="search-title">Поиск соперника</div>
-    <div class="search-sub">Комната: <span id="search-stake">Free</span></div>
-    <button class="cancel-btn" onclick="cancelSearch()">Отмена</button>
-  </div>
+  <div class="game-foot">ARXRA</div>
+</div>
+</section>
 
-
-  <!-- DEPOSIT WAITING -->
-  <div id="deposit-waiting" class="screen" style="align-items:center;justify-content:center;gap:20px;text-align:center">
-    <div class="search-ring"><i class="ti ti-wallet" aria-hidden="true"></i></div>
-    <div class="search-title">Ожидание депозита</div>
-    <div class="search-sub" id="deposit-status-text">Подтверди ставку в кошельке</div>
-    <div style="display:flex;gap:16px;margin-top:4px">
-      <div style="text-align:center">
-        <div style="font-size:11px;color:var(--tx3);margin-bottom:4px">Ты</div>
-        <div id="deposit-my-status" style="font-size:22px">⏳</div>
-      </div>
-      <div style="text-align:center">
-        <div style="font-size:11px;color:var(--tx3);margin-bottom:4px">Соперник</div>
-        <div id="deposit-opp-status" style="font-size:22px">⏳</div>
-      </div>
+<!-- ═══ MODAL: предложить ничью ═══ -->
+<div class="modal-ov" id="modalDraw">
+  <div class="modal-box">
+    <div class="modal-title accent">
+      <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      <span data-i18n="dm_title">Предложить ничью?</span>
     </div>
-    <div id="deposit-timeout-warn" style="display:none;margin-top:12px;font-size:12px;color:var(--tx3);text-align:center;line-height:1.5">
-      Если депозит не подтверждён — контракт вернёт ставки автоматически через <span id="deposit-refund-timer">10:00</span>
-    </div>
-    <button class="cancel-btn" onclick="cancelDepositAndLeave()">Отмена</button>
-    <button id="retry-deposit-btn" style="display:none;margin-top:8px;background:var(--red-dim);border:0.5px solid var(--red);border-radius:4px;padding:12px 24px;color:var(--tx);font-family:'Engry',sans-serif;font-size:12px;letter-spacing:2px;cursor:pointer" onclick="retryDeposit()">Повторить оплату</button>
-  </div>
-
-  <!-- GAME -->
-  <div id="game" class="screen">
-    <div class="pbar">
-      <div class="pcard myturn" id="pcard1">
-        <div class="pcard-top"><div class="pchip white"></div><div class="pcard-name" id="p1name">Player 1</div></div>
-        <div class="pcard-timer" id="timer1">1:00</div>
-      </div>
-      <div class="pot-center">
-        <div class="pot-inner">
-          <i class="ti ti-trophy" aria-hidden="true"></i>
-          <div class="pot-val" id="pot-label">10</div>
-          <div class="pot-cur">GRAM</div>
-        </div>
-      </div>
-      <div class="pcard" id="pcard2">
-        <div class="pcard-top"><div class="pchip black"></div><div class="pcard-name" id="p2name">Player 2</div></div>
-        <div class="pcard-timer" id="timer2">1:00</div>
-      </div>
-    </div>
-
-    <div class="board-frame">
-      <div class="board-ornament"></div>
-      <div id="board"></div>
-    </div>
-
-    <div class="captured-bar">
-      <div class="captured-side" id="p1-captured"></div>
-      <div class="status-bar" id="status-bar" style="margin:0;flex:1;text-align:center">Ваш ход</div>
-      <div class="captured-side" id="p2-captured" style="justify-content:flex-end"></div>
+    <div class="modal-sub" data-i18n="dm_sub">Соперник получит предложение и решит — принять или продолжить</div>
+    <div class="modal-row"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg> <span data-i18n="dm_r1">Ставки <b>возвращаются обоим</b> игрокам</span></div>
+    <div class="modal-row"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> <span data-i18n="dm_r2">Комиссия <b>не взимается</b></span></div>
+    <div class="modal-row"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> <span data-i18n="dm_r3">У соперника <b>30 секунд</b> на ответ</span></div>
+    <div class="modal-row"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/></svg> <span data-i18n="dm_r4">Игра не считается в <b>статистике побед</b></span></div>
+    <div class="modal-btns">
+      <div class="modal-btn" id="drawCancelBtn" data-i18n="dm_cancel">ОТМЕНА</div>
+      <div class="modal-btn accent" id="drawConfirmBtn" data-i18n="dm_confirm">ПРЕДЛОЖИТЬ</div>
     </div>
   </div>
+</div>
 
-  <!-- RESULT -->
-  <div id="result" class="screen">
-    <div class="result-icon-wrap win" id="result-icon-wrap"><i class="ti ti-trophy" id="result-icon-i" aria-hidden="true"></i></div>
-    <div class="result-title win" id="result-title">Победа!</div>
-    <div class="result-amount win" id="result-amount">+17 GRAM</div>
-    <div class="result-sub" id="result-sub">Комиссия: 3%<br>Зачислено на баланс</div>
-    <!-- Баланс кошелька на экране результата -->
-    <div id="result-wallet" style="display:none;background:var(--s1);border:0.5px solid var(--bdr);border-radius:12px;padding:12px 16px;width:100%;box-sizing:border-box;text-align:left">
-      <div style="font-size:10px;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;margin-bottom:6px">GRAM Кошелёк</div>
-      <div style="font-size:12px;color:var(--tx2);font-family:monospace;margin-bottom:6px" id="result-wallet-addr">—</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:20px;font-weight:600;color:#0098ea" id="result-wallet-bal">...</span>
-        <span id="result-wallet-cur" style="font-size:12px;color:var(--tx3)">GRAM</span>
-        <button onclick="toggleResultBalance()" style="background:none;border:none;padding:0;color:var(--tx3);font-size:11px;font-family:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer"><span id="result-wallet-eye">скрыть</span></button>
-      </div>
+<!-- ═══ MODAL: входящее предложение ничьи ═══ -->
+<div class="modal-ov" id="modalDrawIncoming">
+  <div class="modal-box">
+    <div class="modal-title accent">
+      <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      <span data-i18n="di_title">Соперник предлагает ничью</span>
     </div>
-    <div class="result-btns">
-      <button class="btn-main" onclick="rematch()"><i class="ti ti-refresh" style="font-size:16px;vertical-align:-2px" aria-hidden="true"></i> Реванш</button>
-      <button class="btn-sec" onclick="goLobby()"><i class="ti ti-home" style="font-size:14px;vertical-align:-2px" aria-hidden="true"></i> В лобби</button>
+    <div class="modal-sub" id="diSub" data-i18n="di_sub">У тебя 30 секунд на ответ</div>
+    <div class="modal-btns">
+      <div class="modal-btn" id="diDeclineBtn" data-i18n="di_decline">ОТКЛОНИТЬ</div>
+      <div class="modal-btn green" id="diAcceptBtn" data-i18n="di_accept">ПРИНЯТЬ</div>
     </div>
   </div>
+</div>
 
+<!-- ═══ MODAL: сдаться ═══ -->
+<div class="modal-ov" id="modalResign">
+  <div class="modal-box">
+    <div class="modal-title danger">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <span data-i18n="rm_title">Сдаться?</span>
+    </div>
+    <div class="modal-sub" data-i18n="rm_sub">Это действие нельзя отменить</div>
+    <div class="modal-warn" id="resignWarnText"></div>
+    <div class="modal-row"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 10h8"/></svg> <span id="resignLossRow"></span></div>
+    <div class="modal-row"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg> <span data-i18n="rm_r2">Статистика: <b>+1 поражение</b></span></div>
+    <div class="modal-row"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.5L22 9.3l-5 4.9 1.2 7.1L12 17.8l-6.2 3.5L7 14.2 2 9.3l7.1-.8z"/></svg> <span data-i18n="rm_r3">XP: <b>+5 XP (участие)</b></span></div>
+    <div class="modal-btns">
+      <div class="modal-btn" id="resignCancelBtn" data-i18n="rm_cancel">ПРОДОЛЖИТЬ ИГРУ</div>
+      <div class="modal-btn danger" id="resignConfirmBtn" data-i18n="rm_confirm">СДАТЬСЯ</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: результат игры ═══ -->
+<div class="modal-ov" id="modalGameOver">
+  <div class="modal-box">
+    <div class="go-icon-wrap" id="goIconWrap">
+      <svg id="goIcon" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"></svg>
+    </div>
+    <div class="go-title" id="goTitle">—</div>
+    <div class="go-amount" id="goAmount">—</div>
+    <div class="go-sub" id="goSub">—</div>
+    <div class="modal-btns">
+      <div class="modal-btn accent" id="goLobbyBtn" data-i18n="go_lobby" style="flex:1;">В ЛОББИ</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST-MODAL: ничья отклонена/истекла (неблокирующий) ═══ -->
+
+
+<section class="scr" id="scr-postgame"></section>
+<section class="scr" id="scr-pvp"><div class="placeholder"><div class="ph-icon">⚔️</div><div class="ph-title">PvP</div><div class="ph-desc" data-i18n="soon">Следующая итерация</div></div></section>
+
+<!-- ═══════ RATING placeholder ═══════ -->
+<section class="scr" id="scr-rating"><div class="placeholder"><div class="ph-icon">🏆</div><div class="ph-title" data-i18n="rating">Рейтинг</div><div class="ph-desc" data-i18n="soon">Следующая итерация</div></div></section>
+
+<!-- ═══════ PROFILE placeholder ═══════ -->
+<section class="scr" id="scr-profile"><div class="placeholder"><div class="ph-icon">👤</div><div class="ph-title" data-i18n="profile">Профиль</div><div class="ph-desc" data-i18n="soon">Следующая итерация</div></div></section>
+
+<!-- ═══════ TABBAR ═══════ -->
+<nav class="tabbar">
+  <button class="tab-btn on" data-screen="lobby">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span data-i18n="t_home">Главная</span>
+  </button>
+  <button class="tab-btn" data-screen="pvp">
+    <svg viewBox="0 0 24 24"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 7.5l4-4 4 4-4 4"/><path d="M9.5 17L3 21l4-6.5"/></svg>
+    <span>PvP</span>
+  </button>
+  <button class="tab-btn" data-screen="rating">
+    <svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    <span data-i18n="t_rating">Рейтинг</span>
+  </button>
+  <button class="tab-btn" data-screen="profile">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span data-i18n="t_profile">Профиль</span>
+  </button>
+</nav>
+
+<div id="toast"></div>
 </div>
 
 <script>
-const WS_URL = 'wss://happily-reformer-rectangle.ngrok-free.dev';
-const HTTP_URL = 'https://happily-reformer-rectangle.ngrok-free.dev';
+/* ═════════════════════════════════════════
+   CHEKER$GRAM — Lobby + Matchmaking
+   Backend integration + TonConnect + CoinGecko
+═════════════════════════════════════════ */
+const WS_URL = 'wss://srv1753920.hstgr.cloud/socket';
+const HTTP_URL = 'https://srv1753920.hstgr.cloud';
+const TON_MANIFEST = 'https://srv1753920.hstgr.cloud/tonconnect-manifest.json';
+const GRAM_FALLBACK = 1.75;
 
-let ws = null;
-let myPlayerId = null;
-let myToken = null;
-let mySessionId = null;
-let pendingMatchMsg = null; // ожидает старта после депозитов
-let pendingDepositMsg = null; // данные депозита для повтора
-let selectedStake = 0;
-let myPlayerIndex = null; // 1 или 2 (белые/чёрные)
-let myPot = 0;       // банк текущей игры (с сервера)
-let myStake = 0;     // моя ставка в текущей игре
-let capturedByP1 = 0; // сколько чёрных съел белый
-let capturedByP2 = 0; // сколько белых съел чёрный
-
-let board = [];
-let selected = null;
-let hints = [];
-let currentPlayer = 1;
-let forcedFrom = null;
-let gameOver = false;
-let times = [120, 120];
-let timerInterval = null;
-let isMyTurn = false;
-let currentMoveIndex = 0; // Защита от replay атак — синхронизируется с сервером
-
-// ─── TELEGRAM ───
+// Telegram
 const tg = window.Telegram?.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-}
-
-function getTgUser() {
-  if (tg?.initDataUnsafe?.user) {
-    return tg.initDataUnsafe.user;
-  }
-  return { id: Math.floor(Math.random()*100000)+1000, first_name: 'Player', username: 'player' };
-}
-
-// ─── INIT ───
-async function init() {
-  // Показываем данные из Telegram сразу (до ответа сервера)
-  const user = getTgUser();
-  const initials = (user.first_name||'P')[0].toUpperCase();
-  document.getElementById('lobby-avatar').textContent = initials;
-  document.getElementById('lobby-name').textContent = user.first_name + (user.last_name ? ' '+user.last_name : '');
-  document.getElementById('lobby-id').textContent = '@' + (user.username || user.id);
-
+try { tg?.ready(); tg?.expand(); } catch(e) {}
+function haptic(type) {
   try {
-    const initData = tg?.initData || '';
-    if (!initData) {
-      toast('Открой приложение через Telegram');
-      setConnStatus('disconnected');
-      return;
-    }
-    const res = await fetch(HTTP_URL + '/login', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json', 'ngrok-skip-browser-warning': 'true'},
-      body: JSON.stringify({ initData })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast('Ошибка авторизации: ' + (err.error || res.status));
-      setConnStatus('disconnected');
-      return;
-    }
-    const data = await res.json();
-    myPlayerId = data.id;
-    myToken = data.token;
-    // Обновляем имя из БД (актуальный username)
-    document.getElementById('lobby-name').textContent = data.username || user.first_name;
-    document.getElementById('lobby-id').textContent = '@' + (data.username || user.id);
-    updateStats(data);
-    loadHistory();
-    connectWS();
-    // Опрашиваем комнаты и открытые ставки каждые 3 секунды
-    setInterval(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'get_rooms' }));
-        ws.send(JSON.stringify({ type: 'get_open_bets' }));
-      }
-    }, 3000);
-  } catch(e) {
-    setConnStatus('disconnected');
-    toast('Сервер недоступен. Проверь подключение.');
+    if (type === 'sel') tg?.HapticFeedback?.selectionChanged();
+    else tg?.HapticFeedback?.impactOccurred(type || 'light');
+  } catch(e) {}
+}
+
+// State
+const S = {
+  lang: localStorage.getItem('ck_lang') || 'ru',
+  stake: 'free',
+  balance: 0,
+  walletConnected: false,
+  walletAddr: null,
+  online: 0,
+  gramUsd: GRAM_FALLBACK,
+  token: null,
+  playerId: null,
+  searching: false,
+};
+let ws = null, tonUI = null;
+
+// ─── i18n ───
+const I = {
+  ru: {
+    sub:'КЛАССИЧЕСКИЕ ШАШКИ', hero1:'Шашки на', hero2:'победитель забирает банк',
+    online:'онлайн', instant:'Мгновенные выплаты', howto:'Как играть в Cheker$',
+    ht1:'Подключи кошелёк — TonConnect за пару нажатий',
+    ht2:'Выбери ставку — от Free до 15 GRAM',
+    ht3:'Найди соперника → победитель забирает почти весь банк',
+    ht4:'Смарт-контракты TON — честно и прозрачно',
+    htf:'💲 Комиссия 3% от банка — 97% уходит победителю',
+    pick:'ВЫБЕРИ СТАВКУ', bank:'БАНК = СТАВКА X2',
+    conn:'Подключить кошелёк', conn2:'TonConnect — за 2 секунды',
+    bal_lbl:'БАЛАНС', topup_hint:'Пополнить для игры на ставки',
+    cta_find:'НАЙТИ СОПЕРНИКА', cta_conn:'ПОДКЛЮЧИТЬ КОШЕЛЁК', cta_topup:'ПОПОЛНИТЬ БАЛАНС',
+    sub_free:'Бесплатная игра · без ставки',
+    searching:'Поиск соперника', search_sub:'Обычно находим за несколько секунд',
+    cancel:'ОТМЕНИТЬ', soon:'Следующая итерация',
+    rating:'Рейтинг', profile:'Профиль',
+    t_home:'Главная', t_rating:'Рейтинг', t_profile:'Профиль',
+    train:'Тренировка', nostake:'без ставки',
+    toast_conn:'Открываем TonConnect…', toast_topup:'Пополнение — скоро',
+    toast_search:'Ищем соперника…', toast_cancel:'Поиск отменён',
+    toast_wallet:'Кошелёк подключён', toast_err:'Ошибка подключения',
+    g_bank:'БАНК', g_draw:'НИЧЬЯ', g_chat:'ЧАТ', g_resign:'СДАТЬСЯ',
+    g_yourturn:'· ТВОЙ ХОД', g_waitopp:'Ожидаем ход соперника',
+    g_mustcap:'Взятие обязательно!', g_yourmove:'Ваш ход', g_continuecap:'Продолжайте взятие!',
+    dm_title:'Предложить ничью?', dm_sub:'Соперник получит предложение и решит — принять или продолжить',
+    dm_r1:'Ставки <b>возвращаются обоим</b> игрокам', dm_r2:'Комиссия <b>не взимается</b>',
+    dm_r3:'У соперника <b>30 секунд</b> на ответ', dm_r4:'Игра не считается в <b>статистике побед</b>',
+    dm_cancel:'ОТМЕНА', dm_confirm:'ПРЕДЛОЖИТЬ',
+    di_title:'Соперник предлагает ничью', di_sub:'У тебя 30 секунд на ответ',
+    di_decline:'ОТКЛОНИТЬ', di_accept:'ПРИНЯТЬ',
+    rm_title:'Сдаться?', rm_sub:'Это действие нельзя отменить',
+    rm_warn:s=>`Ты проиграешь матч. Ставка <b>${s} GRAM</b> уйдёт сопернику. Поражение запишется в статистику.`,
+    rm_r1:'Потеря:', rm_r2:'Статистика: <b>+1 поражение</b>', rm_r3:'XP: <b>+5 XP (участие)</b>',
+    rm_cancel:'ПРОДОЛЖИТЬ ИГРУ', rm_confirm:'СДАТЬСЯ',
+    go_win:'Победа!', go_lose:'Поражение', go_draw:'Ничья', go_lobby:'В ЛОББИ',
+    go_sub_win:f=>`Комиссия 3% (${f} GRAM) учтена в выплате`,
+    go_sub_lose:'Ставка ушла сопернику', go_sub_draw:'Ставки возвращены обоим',
+    go_reason_timeout:'Поражение по таймауту матча (20 мин)',
+    go_reason_resign:'Соперник сдался', go_reason_resign_me:'Ты сдался',
+    go_reason_disconnect:'Поражение — соперник отключился слишком надолго',
+    toast_draw_sent:'Предложение ничьи отправлено', toast_draw_declined:'Ничья отклонена',
+    toast_draw_expired:'Время на ответ истекло', toast_resign:'Ты сдался',
+    toast_opp_disconnect_risk:'Соперник теряет соединение…',
+  },
+  en: {
+    sub:'CLASSIC CHECKERS', hero1:'Checkers for', hero2:'winner takes the pot',
+    online:'online', instant:'Instant payouts', howto:'How to play Cheker$',
+    ht1:'Connect wallet — TonConnect in a few taps',
+    ht2:'Pick a stake — from Free to 15 GRAM',
+    ht3:'Find opponent → winner takes almost the entire pot',
+    ht4:'TON smart contracts — fair, transparent',
+    htf:'💲 3% fee from pot — 97% goes to winner',
+    pick:'PICK A STAKE', bank:'POT = STAKE X2',
+    conn:'Connect wallet', conn2:'TonConnect — 2 seconds',
+    bal_lbl:'BALANCE', topup_hint:'Top up to play for stakes',
+    cta_find:'FIND OPPONENT', cta_conn:'CONNECT WALLET', cta_topup:'TOP UP BALANCE',
+    sub_free:'Free game · no stake',
+    searching:'Searching for opponent', search_sub:'Usually found in seconds',
+    cancel:'CANCEL', soon:'Next iteration',
+    rating:'Rating', profile:'Profile',
+    t_home:'Home', t_rating:'Rating', t_profile:'Profile',
+    train:'Practice', nostake:'no stake',
+    toast_conn:'Opening TonConnect…', toast_topup:'Top-up coming soon',
+    toast_search:'Searching…', toast_cancel:'Search cancelled',
+    toast_wallet:'Wallet connected', toast_err:'Connection error',
+    g_bank:'POT', g_draw:'DRAW', g_chat:'CHAT', g_resign:'RESIGN',
+    g_yourturn:'· YOUR TURN', g_waitopp:'Waiting for opponent',
+    g_mustcap:'Capture required!', g_yourmove:'Your move', g_continuecap:'Continue capturing!',
+    dm_title:'Offer a draw?', dm_sub:'Opponent gets the offer and decides — accept or continue',
+    dm_r1:'Stakes are <b>returned to both</b> players', dm_r2:'No <b>commission</b> charged',
+    dm_r3:'Opponent has <b>30 seconds</b> to respond', dm_r4:'Game <b>does not count</b> in win stats',
+    dm_cancel:'CANCEL', dm_confirm:'OFFER',
+    di_title:'Opponent offers a draw', di_sub:'You have 30 seconds to respond',
+    di_decline:'DECLINE', di_accept:'ACCEPT',
+    rm_title:'Resign?', rm_sub:'This action cannot be undone',
+    rm_warn:s=>`You will lose the match. Stake <b>${s} GRAM</b> goes to your opponent. Loss will be recorded.`,
+    rm_r1:'Loss:', rm_r2:'Stats: <b>+1 loss</b>', rm_r3:'XP: <b>+5 XP (participation)</b>',
+    rm_cancel:'CONTINUE GAME', rm_confirm:'RESIGN',
+    go_win:'Victory!', go_lose:'Defeat', go_draw:'Draw', go_lobby:'TO LOBBY',
+    go_sub_win:f=>`3% fee (${f} GRAM) included in payout`,
+    go_sub_lose:'Stake went to opponent', go_sub_draw:'Stakes returned to both',
+    go_reason_timeout:'Loss by match timeout (20 min)',
+    go_reason_resign:'Opponent resigned', go_reason_resign_me:'You resigned',
+    go_reason_disconnect:'Loss — opponent disconnected for too long',
+    toast_draw_sent:'Draw offer sent', toast_draw_declined:'Draw declined',
+    toast_draw_expired:'Response time expired', toast_resign:'You resigned',
+    toast_opp_disconnect_risk:'Opponent is losing connection…',
   }
+};
+const t = k => I[S.lang]?.[k] || k;
+const subPaid = (s, b) => S.lang === 'ru'
+  ? `Ставка: <b>${s} GRAM</b> · банк <b>${b} GRAM</b>`
+  : `Stake: <b>${s} GRAM</b> · pot <b>${b} GRAM</b>`;
+
+function applyLang() {
+  document.documentElement.lang = S.lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = I[S.lang]?.[el.dataset.i18n];
+    if (typeof v === 'string') el.innerHTML = v;
+  });
+  document.querySelectorAll('.lang-sw span').forEach(b =>
+    b.classList.toggle('on', b.dataset.lang === S.lang)
+  );
+  renderBalance();
+  renderStakes();
+  renderCTA();
+  if (G.active) { renderPlayerCards(); }
 }
 
-// ─── UI HELPERS ───
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+// ─── GRAM/USD price ───
+async function fetchPrice() {
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd', { cache: 'no-cache' });
+    const d = await r.json();
+    const p = d?.['the-open-network']?.usd;
+    if (p && typeof p === 'number') { S.gramUsd = p; renderStakes(); }
+  } catch(e) { console.warn('[PRICE] fallback', e); }
 }
 
-function setConnStatus(s) {
-  const el = document.getElementById('conn-status');
-  el.className = s;
-  el.innerHTML = s === 'connected' 
-    ? '<i class="ti ti-wifi" style="font-size:11px;vertical-align:-1px"></i> online' 
-    : s === 'connecting' 
-    ? '<i class="ti ti-wifi" style="font-size:11px;vertical-align:-1px"></i> connecting' 
-    : '<i class="ti ti-wifi-off" style="font-size:11px;vertical-align:-1px"></i> offline';
-}
-
-function toast(msg, dur=3000) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), dur);
-}
-
-function selectStake(val, btn) {
-  selectedStake = (val !== undefined && val !== null) ? val : selectedStake;
-  document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
-  if (btn) {
-    btn.classList.add('selected');
-    document.getElementById('custom-input').value = '';
-  }
-  updatePlayBtn();
-  renderOpenBets();
-}
-
-function selectCustomStake(val) {
-  if (val > 0) {
-    selectedStake = val;
-    document.querySelectorAll('.stake-btn').forEach(b => b.classList.remove('selected'));
-    updatePlayBtn();
-    renderOpenBets();
-  }
-}
-
-// ─── PLAY BUTTON LABEL ───
-// Free (0) — старая логика: матчмейкинг сразу ищет соперника в общей очереди.
-// Ставка (>0) — нет смысла в "поиске по бакетам", т.к. ставки произвольные.
-// Вместо этого игрок публикует свою ставку в список "Открытые ставки",
-// и любой другой игрок может её принять (accept_bet).
-function updatePlayBtn() {
-  const btn = document.getElementById('play-btn');
-  if (!btn) return;
-  if (myOpenBetId) {
-    btn.innerHTML = '<i class="ti ti-x" style="font-size:18px" aria-hidden="true"></i> Снять ставку';
-  } else if (selectedStake === 0) {
-    btn.innerHTML = '<i class="ti ti-search" style="font-size:18px" aria-hidden="true"></i> Найти соперника';
+// ─── Balance render ───
+function renderBalance() {
+  const area = document.getElementById('balArea');
+  if (!S.walletConnected) {
+    area.innerHTML = `
+      <div class="wallet-banner" id="walletBanner">
+        <div class="wallet-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
+        <div class="wallet-text"><div class="wt1">${t('conn')}</div><div class="wt2">${t('conn2')}</div></div>
+        <div class="wallet-arr">→</div>
+      </div>`;
+    document.getElementById('walletBanner').onclick = connectWallet;
   } else {
-    btn.innerHTML = '<i class="ti ti-flag" style="font-size:18px" aria-hidden="true"></i> Создать ставку ' + selectedStake + ' GRAM';
+    const zero = S.balance <= 0;
+    area.innerHTML = `
+      <div class="bal-card ${zero ? 'zero' : 'has'}">
+        <div class="bal-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v12"/><path d="M8 10h8"/></svg></div>
+        <div class="bal-info">
+          <div class="bal-label">${t('bal_lbl')}</div>
+          <div class="bal-amount">${S.balance.toFixed(2)}<span class="bal-unit">GRAM</span></div>
+          ${zero ? `<span class="bal-hint">${t('topup_hint')}</span>` : ''}
+        </div>
+        <div class="bal-plus" id="topupBtn">+</div>
+      </div>`;
+    document.getElementById('topupBtn').onclick = doTopup;
   }
 }
 
-function updateRoomCounts(rooms) {
-  if (!rooms) return;
-  [0, 0.1, 0.5, 1, 5, 10, 50, 100].forEach(s => {
-    const el = document.getElementById('room-' + s);
-    if (!el) return;
-    const count = rooms[s] || 0;
-    if (count > 0) {
-      el.textContent = count + ' ждут';
-      el.className = 'stake-waiting';
-    } else {
-      el.textContent = '\u00a0';
-      el.className = 'stake-waiting empty';
-    }
+// ─── Stakes render ───
+const STAKES = [
+  { id: 'free', label: 'FREE' },
+  { id: 0.5, label: '0.5' },
+  { id: 1, label: '1' },
+  { id: 5, label: '5' },
+  { id: 10, label: '10' },
+  { id: 15, label: '15' },
+];
+
+function renderStakes() {
+  const grid = document.getElementById('stakesGrid');
+  grid.innerHTML = STAKES.map(s => {
+    const isFree = s.id === 'free';
+    const sel = isFree ? S.stake === 'free' : S.stake === s.id;
+    const usd = isFree ? '' : `~$${(s.id * S.gramUsd).toFixed(2)}`;
+    const lbl = isFree ? t('train') : 'GRAM';
+    const sub = isFree ? t('nostake') : usd;
+    const coinCls = isFree ? 'coin-free' : (sel ? 'coin-gold' : 'coin-dark');
+    return `<div class="stake-chip${sel ? ' selected' : ''}" data-sid="${s.id}">
+      ${sel ? '<div class="stake-check">✓</div>' : ''}
+      <div class="stake-coin ${coinCls}">${s.label}</div>
+      <div class="stake-label">${lbl}</div>
+      <div class="stake-price">${sub}</div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.stake-chip').forEach(chip => {
+    chip.onclick = () => {
+      const raw = chip.dataset.sid;
+      S.stake = raw === 'free' ? 'free' : parseFloat(raw);
+      haptic('sel');
+      renderStakes();
+      renderCTA();
+    };
   });
 }
 
-// ─── ОТКРЫТЫЕ СТАВКИ ───
-// Реальный протокол по WS (см. серверную часть в openBets.ts):
-//   → клиент: { type: 'get_open_bets' }                — запросить список
-//   ← сервер: { type: 'open_bets_list', bets: [...] }  — { id, name, avatar, stake, ts, mine }
-//   → клиент: { type: 'create_bet', stake }            — опубликовать свою ставку
-//   ← сервер: { type: 'bet_created', betId }           — подтверждение, запоминаем myOpenBetId
-//   → клиент: { type: 'accept_bet', betId }            — принять чужую ставку
-//   → клиент: { type: 'cancel_bet', betId }            — снять свою ставку
-//   ← сервер: { type: 'bet_accepted', betId }          — кто-то принял твою ставку → дальше как обычный матч
-//   ← сервер: { type: 'bet_cancelled', betId }         — ставка снята (своя или чужая, например по таймауту)
-let myOpenBetId = null;
-let openBets = [];
-
-function timeAgo(ts) {
-  const sec = Math.floor((Date.now() - ts) / 1000);
-  if (sec < 60) return sec + ' сек назад';
-  const min = Math.floor(sec / 60);
-  if (min < 60) return min + ' мин назад';
-  return Math.floor(min / 60) + ' ч назад';
-}
-
-function renderOpenBets() {
-  const list = document.getElementById('bets-list');
-  if (!list) return;
-
-  // Показываем все ставки кроме своей. Свою — отдельным элементом наверху,
-  // если она создана (myOpenBetId).
-  const others = openBets.filter(b => b.id !== myOpenBetId);
-  const mine = openBets.find(b => b.id === myOpenBetId);
-
-  let html = '';
-
-  if (mine) {
-    html += `
-      <div class="bet-item mine">
-        <div class="bet-player">
-          <div class="bet-avatar">${mine.avatar}</div>
-          <div class="bet-info">
-            <div class="bet-name">Твоя ставка</div>
-            <div class="bet-meta">Ждём соперника · ${timeAgo(mine.ts)}</div>
-          </div>
-        </div>
-        <div class="bet-right">
-          <div class="bet-stake">${mine.stake}<span class="cur">GRAM</span></div>
-          <button class="bet-accept cancel" onclick="cancelOpenBet()">Снять</button>
-        </div>
-      </div>`;
-  }
-
-  if (others.length === 0 && !mine) {
-    html += `
-      <div class="bets-empty">
-        Пока нет открытых ставок
-        <span>Стань первым — создай свою ниже</span>
-      </div>`;
-  } else {
-    others.forEach(b => {
-      html += `
-        <div class="bet-item">
-          <div class="bet-player">
-            <div class="bet-avatar">${b.avatar}</div>
-            <div class="bet-info">
-              <div class="bet-name">${b.name}</div>
-              <div class="bet-meta">${timeAgo(b.ts)}</div>
-            </div>
-          </div>
-          <div class="bet-right">
-            <div class="bet-stake">${b.stake}<span class="cur">GRAM</span></div>
-            <button class="bet-accept" onclick="acceptOpenBet('${b.id}')">Принять</button>
-          </div>
-        </div>`;
-    });
-  }
-
-  list.innerHTML = html;
-}
-
-function refreshOpenBets() {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'get_open_bets' }));
-  }
-  toast('Обновлено');
-}
-
-function acceptOpenBet(betId) {
-  const bet = openBets.find(b => b.id === betId);
-  if (!bet) return;
-  if (!ws || ws.readyState !== WebSocket.OPEN) { toast('Нет соединения'); return; }
-  ws.send(JSON.stringify({ type: 'accept_bet', betId }));
-  toast('Принимаем ставку ' + bet.stake + ' GRAM...');
-  document.getElementById('search-stake').textContent = bet.stake + ' GRAM';
-  showScreen('searching');
-}
-
-function createOpenBet() {
-  if (selectedStake <= 0) return;
-  if (!ws || ws.readyState !== WebSocket.OPEN) { toast('Нет соединения'); return; }
-  ws.send(JSON.stringify({ type: 'create_bet', stake: selectedStake }));
-  toast('Ставка ' + selectedStake + ' GRAM опубликована');
-}
-
-function cancelOpenBet() {
-  if (!myOpenBetId) return;
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'cancel_bet', betId: myOpenBetId }));
-  }
-  openBets = openBets.filter(b => b.id !== myOpenBetId);
-  myOpenBetId = null;
-  updatePlayBtn();
-  renderOpenBets();
-  toast('Ставка снята');
-}
-  const sec = Math.floor((Date.now() - ts) / 1000);
-  if (sec < 60) return sec + ' сек назад';
-  const min = Math.floor(sec / 60);
-  if (min < 60) return min + ' мин назад';
-  return Math.floor(min / 60) + ' ч назад';
-}
-
-function renderOpenBets() {
-  const list = document.getElementById('bets-list');
-  if (!list) return;
-
-  // Показываем все ставки кроме своей. Свою — отдельным элементом наверху,
-  // если она создана (myOpenBetId).
-  const others = openBets.filter(b => b.id !== myOpenBetId);
-  const mine = openBets.find(b => b.id === myOpenBetId);
-
-  let html = '';
-
-  if (mine) {
-    html += `
-      <div class="bet-item mine">
-        <div class="bet-player">
-          <div class="bet-avatar">${mine.avatar}</div>
-          <div class="bet-info">
-            <div class="bet-name">Твоя ставка</div>
-            <div class="bet-meta">Ждём соперника · ${timeAgo(mine.ts)}</div>
-          </div>
-        </div>
-        <div class="bet-right">
-          <div class="bet-stake">${mine.stake}<span class="cur">GRAM</span></div>
-          <button class="bet-accept cancel" onclick="cancelOpenBet()">Снять</button>
-        </div>
-      </div>`;
-  }
-
-  if (others.length === 0 && !mine) {
-    html += `
-      <div class="bets-empty">
-        Пока нет открытых ставок
-        <span>Стань первым — создай свою ниже</span>
-      </div>`;
-  } else {
-    others.forEach(b => {
-      html += `
-        <div class="bet-item">
-          <div class="bet-player">
-            <div class="bet-avatar">${b.avatar}</div>
-            <div class="bet-info">
-              <div class="bet-name">${b.name}</div>
-              <div class="bet-meta">${timeAgo(b.ts)}</div>
-            </div>
-          </div>
-          <div class="bet-right">
-            <div class="bet-stake">${b.stake}<span class="cur">GRAM</span></div>
-            <button class="bet-accept" onclick="acceptOpenBet('${b.id}')">Принять</button>
-          </div>
-        </div>`;
-    });
-  }
-
-  list.innerHTML = html;
-}
-
-function refreshOpenBets() {
-  // TODO (backend): ws.send(JSON.stringify({ type: 'get_open_bets' }));
-  renderOpenBets();
-  toast('Обновлено');
-}
-
-function acceptOpenBet(betId) {
-  const bet = openBets.find(b => b.id === betId);
-  if (!bet) return;
-  // TODO (backend): ws.send(JSON.stringify({ type: 'accept_bet', betId }));
-  // Сервер должен: списать ставку у обоих игроков, задеплоить контракт,
-  // прислать deposit_required / match_found как при обычном матче.
-  toast('Принимаем ставку ' + bet.stake + ' GRAM...');
-  document.getElementById('search-stake').textContent = bet.stake + ' GRAM';
-  showScreen('searching');
-}
-
-function createOpenBet() {
-  if (selectedStake <= 0) return;
-  // TODO (backend): ws.send(JSON.stringify({ type: 'create_bet', stake: selectedStake }));
-  const id = 'mine_' + Date.now();
-  myOpenBetId = id;
-  openBets = openBets.filter(b => b.id !== myOpenBetId);
-  openBets.unshift({ id, name: 'Ты', avatar: '★', stake: selectedStake, ts: Date.now() });
-  updatePlayBtn();
-  renderOpenBets();
-  toast('Ставка ' + selectedStake + ' GRAM опубликована');
-}
-
-function cancelOpenBet() {
-  // TODO (backend): ws.send(JSON.stringify({ type: 'cancel_bet', betId: myOpenBetId }));
-  openBets = openBets.filter(b => b.id !== myOpenBetId);
-  myOpenBetId = null;
-  updatePlayBtn();
-  renderOpenBets();
-  toast('Ставка снята');
-}
-
-// ─── WEBSOCKET ───
-function connectWS(onOpen) {
-  if (!myToken) return;
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    if (onOpen) onOpen();
-    return;
-  }
-  if (ws && ws.readyState === WebSocket.CONNECTING) return;
-
-  setConnStatus('connecting');
-  // Если есть активная игра — подключаемся с gameId для реконнекта
-  const activeGameId = mySessionId || sessionStorage.getItem('activeGameId');
-  const wsUrl = activeGameId
-    ? WS_URL + '?token=' + myToken + '&gameId=' + activeGameId
-    : WS_URL + '?token=' + myToken;
-  ws = new WebSocket(wsUrl);
-
-  ws.onopen = () => {
-    setConnStatus('connected');
-    if (onOpen) onOpen();
-  };
-
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    handleMessage(msg);
-  };
-
-  ws.onclose = () => {
-    setConnStatus('disconnected');
-    // Авто-реконнект через 2 секунды всегда
-    setTimeout(() => {
-      if (myToken && (!ws || ws.readyState === WebSocket.CLOSED)) {
-        connectWS();
-      }
-    }, 2000);
-  };
-
-  ws.onerror = () => {
-    setConnStatus('disconnected');
-  };
-}
-
-function handleMessage(msg) {
-  if (msg.type === 'searching') {
-    showScreen('searching');
-  }
-
-  if (msg.type === 'game_ready_check') {
-    // Сервер ждёт подтверждения от обоих игроков перед стартом
-    // Отвечаем немедленно — клиент готов
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'player_ready', sessionId: msg.sessionId }));
-    }
-  }
-
-  if (msg.type === 'deposit_required') {
-    pendingMatchMsg = msg;
-    showScreen('deposit-waiting');
-    handleDepositRequired(msg);
-  }
-
-  if (msg.type === 'deposit_status') {
-    // Если мы не на экране депозита — показываем его (реконнект)
-    const activeScreen = document.querySelector('.screen.active');
-    if (activeScreen && activeScreen.id !== 'deposit-waiting') {
-      showScreen('deposit-waiting');
-    }
-    document.getElementById('deposit-my-status').textContent = msg.myDeposited ? '✅' : '⏳';
-    document.getElementById('deposit-opp-status').textContent = msg.oppDeposited ? '✅' : '⏳';
-    const count = (msg.myDeposited ? 1 : 0) + (msg.oppDeposited ? 1 : 0);
-    document.getElementById('deposit-status-text').textContent =
-      count === 0 ? 'Ожидаем депозиты...' :
-      count === 1 ? 'Ждём второго игрока...' :
-      'Оба внесли ставки — начинаем!';
-    // Показываем кнопку повтора если наш депозит ещё не принят
-    const retryBtn = document.getElementById('retry-deposit-btn');
-    if (retryBtn) retryBtn.style.display = (!msg.myDeposited && pendingDepositMsg) ? 'block' : 'none';
-  }
-
-  if (msg.type === 'match_found') {
-    mySessionId = msg.sessionId;
-    sessionStorage.setItem('activeGameId', msg.sessionId);
-    sessionStorage.setItem('activeGameMsg', JSON.stringify(msg));
-    // Всегда ждём game_start от сервера — он содержит актуальный state
-    // Показываем экран поиска пока ждём
-  }
-
-  if (msg.type === 'game_start') {
-    stopDepositTimer();
-    if (msg.moveIndex !== undefined) currentMoveIndex = msg.moveIndex;
-    const savedMsg = pendingMatchMsg || JSON.parse(sessionStorage.getItem('activeGameMsg') || 'null');
-    if (savedMsg) {
-      savedMsg.state = msg.state;
-      if (msg.whiteTime !== undefined) savedMsg.whiteTime = msg.whiteTime;
-      if (msg.blackTime !== undefined) savedMsg.blackTime = msg.blackTime;
-      // playerIndex из match_found уже в savedMsg — не затираем
-      // Но если сервер прислал явно — берём оттуда
-      if (msg.playerIndex !== undefined) savedMsg.playerIndex = msg.playerIndex;
-      pendingMatchMsg = null;
-      // Обновляем sessionStorage актуальными данными
-      sessionStorage.setItem('activeGameMsg', JSON.stringify(savedMsg));
-      startGame(savedMsg);
-    }
-  }
-
-  if (msg.type === 'state_update') {
-    if (msg.moveIndex !== undefined) currentMoveIndex = msg.moveIndex;
-    updateGameState(msg.state);
-  }
-
-  if (msg.type === 'timer_update') {
-    // Обновляем чей ход
-    if (msg.activePlayer && msg.activePlayer !== currentPlayer) {
-      currentPlayer = msg.activePlayer;
-      isMyTurn = currentPlayer === myPlayerIndex;
-      updateStatusBar();
-    }
-    // Синхронизируем дедлайн при КАЖДОМ timer_update (сервер авторитетен)
-    const activeTime = msg.activePlayer === 1 ? msg.whiteTime : msg.blackTime;
-    times[0] = msg.whiteTime;
-    times[1] = msg.blackTime;
-    resetMoveTimer(activeTime);
-  }
-
-  if (msg.type === 'game_over') {
-    sessionStorage.removeItem('activeGameId');
-    sessionStorage.removeItem('activeGameMsg');
-    // Обновляем pot/stake из события если клиент потерял их (реконнект/дисконнект)
-    if (msg.pot && msg.pot > 0) myPot = msg.pot;
-    if (msg.stake && msg.stake > 0) myStake = msg.stake;
-    endGame(msg.winner);
-  }
-
-  if (msg.type === 'room_counts') {
-    updateRoomCounts(msg.rooms);
-  }
-
-  // ─── ОТКРЫТЫЕ СТАВКИ ───
-  if (msg.type === 'open_bets_list') {
-    openBets = (msg.bets || []).map(b => ({
-      id: b.id,
-      name: b.name || ('Player ' + b.id),
-      avatar: (b.avatar || (b.name || '?')[0] || '?').toUpperCase(),
-      stake: b.stake,
-      ts: b.ts || Date.now(),
-    }));
-    // Если сервер помечает какая ставка моя — синхронизируем myOpenBetId
-    const mine = msg.bets && msg.bets.find(b => b.mine);
-    myOpenBetId = mine ? mine.id : (openBets.find(b => b.id === myOpenBetId) ? myOpenBetId : null);
-    updatePlayBtn();
-    renderOpenBets();
-  }
-
-  if (msg.type === 'bet_created') {
-    myOpenBetId = msg.betId;
-    updatePlayBtn();
-    // Список придёт следующим broadcast'ом (open_bets_list), но можно дорисовать сразу
-    if (!openBets.find(b => b.id === msg.betId)) {
-      openBets.unshift({ id: msg.betId, name: 'Ты', avatar: '★', stake: selectedStake, ts: Date.now() });
-    }
-    renderOpenBets();
-  }
-
-  if (msg.type === 'bet_cancelled') {
-    openBets = openBets.filter(b => b.id !== msg.betId);
-    if (myOpenBetId === msg.betId) myOpenBetId = null;
-    updatePlayBtn();
-    renderOpenBets();
-  }
-
-  if (msg.type === 'bet_accepted') {
-    // Кто-то принял нашу ставку — сервер дальше пришлёт deposit_required / match_found
-    openBets = openBets.filter(b => b.id !== msg.betId);
-    myOpenBetId = null;
-    updatePlayBtn();
-    toast('Твою ставку приняли!');
-    showScreen('searching');
-  }
-
-  if (msg.type === 'reconnected') {
-    mySessionId = msg.sessionId;
-    if (msg.moveIndex !== undefined) currentMoveIndex = msg.moveIndex;
-    const savedRaw = sessionStorage.getItem('activeGameMsg');
-    if (savedRaw && msg.state) {
-      const gameMsg = JSON.parse(savedRaw);
-      gameMsg.state = msg.state;
-      gameMsg.playerIndex = msg.playerIndex;
-      gameMsg.whiteTime = msg.whiteTime;
-      gameMsg.blackTime = msg.blackTime;
-      startGame(gameMsg);
-    } else if (msg.state) {
-      // state есть но нет savedMsg — странная ситуация, идём в лобби
-      mySessionId = null;
-      sessionStorage.removeItem('activeGameId');
-      sessionStorage.removeItem('activeGameMsg');
-      showScreen('lobby');
-    }
-    // Если нет ни state ни savedMsg — ждём deposit_status (pending deposit фаза)
-    return;
-  }
-
-  if (msg.type === 'welcome' && msg.rooms) {
-    updateRoomCounts(msg.rooms);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'get_open_bets' }));
-    }
-  }
-
-  if (msg.type === 'hold_failed') {
-    showScreen('lobby');
-    toast('Недостаточно средств');
-  }
-
-  if (msg.type === 'search_cancelled') {
-    showScreen('lobby');
-  }
-
-  if (msg.type === 'error') {
-    // Токен истёк — перелогиниваемся автоматически
-    if (msg.code === 'TOKEN_EXPIRED') {
-      console.log('[AUTH] Token expired — re-logging in...');
-      myToken = null;
-      init();
-      return;
-    }
-    toast('⚠ ' + msg.message);
-  }
-
-  if (msg.type === 'match_cancelled') {
-    stopDepositTimer();
-    pendingMatchMsg = null;
-    showScreen('lobby');
-    toast('Матч отменён — ставки возвращены');
-  }
-}
-
-// ─── MATCHMAKING ───
-function findMatch() {
-  if (selectedStake === null || selectedStake === undefined || selectedStake < 0) { toast('Выбери комнату'); return; }
-  if (!myToken) { toast('Подключение...'); init().then(findMatch); return; }
-
-  // Ставка > 0 — у нас нет матчмейкинга по уникальным ставкам,
-  // поэтому работаем через "Открытые ставки" (см. createOpenBet/cancelOpenBet).
-  if (selectedStake > 0) {
-    if (myOpenBetId) {
-      cancelOpenBet();
-    } else {
-      createOpenBet();
-    }
-    return;
-  }
-
-  // Free (0 TON) — старый queue-based матчмейкинг, тут уникальность ставки не важна.
-  document.getElementById('search-stake').textContent = 'Free';
-
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    connectWS(() => {
-      ws.send(JSON.stringify({ type: 'find_match', stake: selectedStake }));
-    });
-  } else {
-    ws.send(JSON.stringify({ type: 'find_match', stake: selectedStake }));
-    showScreen('searching');
-  }
-}
-
-// ─── DEPOSIT TIMEOUT TIMER ───
-let depositTimeoutInterval = null;
-let depositStartTime = null;
-const DEPOSIT_TIMEOUT_SEC = 600; // 10 минут = 600 сек
-
-function startDepositTimer() {
-  depositStartTime = Date.now();
-  const warn = document.getElementById('deposit-timeout-warn');
-  const timerEl = document.getElementById('deposit-refund-timer');
-  if (warn) warn.style.display = 'block';
-
-  if (depositTimeoutInterval) clearInterval(depositTimeoutInterval);
-  depositTimeoutInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - depositStartTime) / 1000);
-    const remaining = Math.max(0, DEPOSIT_TIMEOUT_SEC - elapsed);
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
-    if (timerEl) timerEl.textContent = m + ':' + String(s).padStart(2, '0');
-
-    if (remaining <= 60 && warn) {
-      warn.style.color = 'var(--danger)';
-    }
-    if (remaining === 0) {
-      clearInterval(depositTimeoutInterval);
-      if (timerEl) timerEl.textContent = '0:00';
-      toast('Время вышло — ставки будут возвращены контрактом автоматически', 5000);
-    }
-  }, 1000);
-}
-
-function stopDepositTimer() {
-  if (depositTimeoutInterval) {
-    clearInterval(depositTimeoutInterval);
-    depositTimeoutInterval = null;
-  }
-  const warn = document.getElementById('deposit-timeout-warn');
-  if (warn) warn.style.display = 'none';
-}
-
-function retryDeposit() {
-  if (pendingDepositMsg) {
-    handleDepositRequired(pendingDepositMsg);
-  } else {
-    toast('Нет данных для повтора — обнови страницу');
-  }
-}
-
-function cancelDepositAndLeave() {
-  stopDepositTimer();
-  pendingMatchMsg = null;
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'deposit_cancelled' }));
-  }
-  showScreen('lobby');
-}
-
-function cancelSearch() {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'cancel_search' }));
-    // Запрашиваем актуальные счётчики
-    setTimeout(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'get_rooms' }));
-      }
-    }, 300);
-  }
-  showScreen('lobby');
-}
-
-function goLobby() {
-  gameOver = true;
-  clearInterval(timerInterval);
-  mySessionId = null;
-  pendingMatchMsg = null;
-  sessionStorage.removeItem('activeGameId');
-  sessionStorage.removeItem('activeGameMsg');
-  if (ws) ws.close();
-  // Обновляем баланс в лобби если кошелёк подключён
-  if (walletAddress && tonBalanceVisible && tonBalanceValue !== null) {
-    document.getElementById('ton-bal').textContent = tonBalanceValue;
-  }
-  showScreen('lobby');
-}
-
-// ─── TON BOC BUILDER ───
-// Строит BOC для Tact message JoinGame { gameId: String }
-// Структура: Cell0(opcode 32bit, ref→Cell1) + Cell1(gameId bytes)
-// БЕЗ внешних библиотек — чистый JS
-function buildJoinGameBoc(opcode, gameId) {
-  const gameBytes = new TextEncoder().encode(gameId);
-  const n = gameBytes.length;
-
-  // Cell 1 — строка gameId (без refs)
-  // d1=0x00 (0 refs), d2=n*2 (n полных байт)
-  const cell1 = new Uint8Array(2 + n);
-  cell1[0] = 0x00;        // d1: 0 refs
-  cell1[1] = n * 2;       // d2: n full bytes, no padding bit
-  cell1.set(gameBytes, 2);
-
-  // Cell 0 — root: opcode (32 bit) + ref на cell1
-  // d1=0x01 (1 ref), d2=0x08 (4 full bytes = 8)
-  // ref index = 1 (1 byte, т.к. size_bytes=1)
-  const cell0 = new Uint8Array(2 + 4 + 1);
-  cell0[0] = 0x01;  // d1: 1 ref
-  cell0[1] = 0x08;  // d2: 4 bytes * 2 = 8
-  const view = new DataView(cell0.buffer);
-  view.setUint32(2, opcode >>> 0, false);  // opcode big-endian
-  cell0[6] = 0x01;  // ref → cell index 1
-
-  // Склеиваем cells
-  const cells = new Uint8Array(cell0.length + cell1.length);
-  cells.set(cell0, 0);
-  cells.set(cell1, cell0.length);
-
-  // BOC header (без CRC32, flags=0x01)
-  // magic(4) + flags(1) + off_size(1) + cells_cnt(1) + roots_cnt(1) + absent(1) + tot_size(1) + root_idx(1)
-  const header = new Uint8Array([
-    0xb5, 0xee, 0x9c, 0x72,  // magic
-    0x01,                     // flags: size_bytes=1, no crc32
-    0x01,                     // off_size = 1
-    0x02,                     // cells_count = 2
-    0x01,                     // roots_count = 1
-    0x00,                     // absent = 0
-    cells.length,             // tot_cells_size (1 byte)
-    0x00,                     // root_index = 0
-  ]);
-
-  const boc = new Uint8Array(header.length + cells.length);
-  boc.set(header, 0);
-  boc.set(cells, header.length);
-
-  // base64 encode
-  let bin = '';
-  boc.forEach(b => bin += String.fromCharCode(b));
-  return btoa(bin);
-}
-
-// ─── TON DEPOSIT ───
-function handleDepositRequired(msg) {
-  if (!tonConnectUI || !walletAddress) {
-    toast('Подключи GRAM кошелёк для игры на ставку');
-    return;
-  }
-
-  // Сохраняем для повтора при реконнекте
-  pendingDepositMsg = msg;
-  startDepositTimer();
-
-  const stakeTon = msg.stakeTon;
-  const contractAddr = msg.contractAddress;
-  const gameId = msg.gameId || '';
-
-  // Строим правильный BOC для JoinGame { gameId: String }
-  // Опкод подтверждён из байткода задеплоенного контракта: 0xaaa12027
-  const JOINGAME_OPCODE = 0xaaa12027;
-  const payload = buildJoinGameBoc(JOINGAME_OPCODE, gameId);
-
-  toast('Подтверди ставку ' + stakeTon + ' GRAM в кошельке', 6000);
-
-  tonConnectUI.sendTransaction({
-    validUntil: Math.floor(Date.now() / 1000) + 300,
-    messages: [
-      {
-        address: contractAddr,
-        amount: msg.stakeNano,
-        payload: payload,
-      },
-    ],
-  }).then(() => {
-    toast('Ставка ' + stakeTon + ' GRAM внесена!');
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'deposit_confirmed', gameId: gameId }));
-    }
-  }).catch(e => {
-    console.error('TON transaction error:', e);
-    const rejected = e.message && (e.message.includes('User rejects') || e.message.includes('UserRejectsError'));
-    toast(rejected ? 'Транзакция отклонена' : 'Ошибка транзакции: ' + (e.message || e));
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'deposit_cancelled', gameId: gameId }));
-    }
-  });
-}
-
-// ─── GAME START ───
-function startGame(msg) {
-  const state = msg.state;
-
-  if (!state || !state.board) {
-    console.error('startGame: no state', msg);
-    toast('Ошибка: нет данных игры');
-    return;
-  }
-
-  // Определяем кто мы — белые (1) или чёрные (2)
-  // players[0] = белые, players[1] = чёрные
-  // В wsServer: [opponentId, playerId] — мы второй
-  // playerIndex: 1 = белые (players[0]), 2 = чёрные (players[1])
-  // Берём из msg — сервер шлёт правильное значение в match_found
-  myPlayerIndex = msg.playerIndex || 2;
-
-  const myName = msg.myName || (myPlayerIndex === 1 ? 'Белые' : 'Чёрные');
-  const oppName = msg.opponentName || (myPlayerIndex === 1 ? 'Чёрные' : 'Белые');
-  const myInitial = myName[0].toUpperCase();
-  const oppInitial = oppName[0].toUpperCase();
-
-  // p1 карточка = белые, p2 карточка = чёрные
-  // myPlayerIndex=1 → я белые → моё имя в p1
-  // myPlayerIndex=2 → я чёрные → моё имя в p2
-  if (myPlayerIndex === 1) {
-    document.getElementById('p1name').textContent = myName + ' (ты)';
-    document.getElementById('p2name').textContent = oppName;
-  } else {
-    document.getElementById('p1name').textContent = oppName;
-    document.getElementById('p2name').textContent = myName + ' (ты)';
-  }
-  myPot = msg.pot || selectedStake * 2;
-  myStake = msg.myStake || selectedStake;
-  document.getElementById('pot-label').textContent = myPot + ' GRAM';
-
-  board = state.board;
-  currentPlayer = state.currentPlayer;
-  forcedFrom = state.forcedFrom || null;
-  gameOver = false;
-  selected = null;
-  hints = [];
-  currentMoveIndex = 0; // Сбрасываем для новой игры
-  // Берём реальное время из state если есть (реконнект), иначе дефолт
-  times = [
-    (msg.whiteTime !== undefined) ? msg.whiteTime : 60,
-    (msg.blackTime !== undefined) ? msg.blackTime : 60,
-  ];
-  capturedByP1 = 0;
-  capturedByP2 = 0;
-  renderCaptured();
-
-  isMyTurn = currentPlayer === myPlayerIndex;
-
-  showScreen('game');
-  renderBoard();
-  renderTimers();
-  updateStatusBar();
-  startClientTimer();
-}
-
-function updateGameState(state) {
-  // Count captured pieces from board
-  let whites = 0, blacks = 0;
-  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
-    const v = state.board[y][x];
-    if (v === 1 || v === 3) whites++;
-    if (v === 2 || v === 4) blacks++;
-  }
-  capturedByP1 = 12 - blacks; // белый съел чёрных
-  capturedByP2 = 12 - whites; // чёрный съел белых
-  board = state.board;
-  currentPlayer = state.currentPlayer;
-  forcedFrom = state.forcedFrom || null;
-  isMyTurn = currentPlayer === myPlayerIndex;
-  selected = null;
-  hints = [];
-  renderBoard();
-  renderCaptured();
-  updateStatusBar();
-}
-
-function renderCaptured() {
-  const p1el = document.getElementById('p1-captured');
-  const p2el = document.getElementById('p2-captured');
-  if (!p1el || !p2el) return;
-  p1el.innerHTML = '';
-  p2el.innerHTML = '';
-  for (let i = 0; i < capturedByP1; i++) {
-    const d = document.createElement('div');
-    d.className = 'cap-piece p2'; // белый съел чёрных — показываем чёрные
-    p1el.appendChild(d);
-  }
-  for (let i = 0; i < capturedByP2; i++) {
-    const d = document.createElement('div');
-    d.className = 'cap-piece p1'; // чёрный съел белых — показываем белые
-    p2el.appendChild(d);
-  }
-}
-
-// ─── GAME LOGIC (CLIENT-SIDE для подсветки) ───
+// ════════════════════════════════════════════
+// GAME (доска, ходы, таймеры, ничья/сдача)
+// ════════════════════════════════════════════
+const G = {
+  active: false,
+  board: null,
+  currentPlayer: 1,
+  forcedFrom: null,
+  myPlayerIndex: 1,
+  selected: null,
+  hints: [],
+  moveIndex: 0,
+  myName: '', opponentName: '',
+  myWins: 0, myGames: 0, opponentWins: 0, opponentGames: 0,
+  pot: 0, myStake: 0,
+  whiteTime: 60, blackTime: 60,
+  moveDeadlineClient: 0,
+  matchDeadline: null, matchTimeLimitMs: 20 * 60 * 1000,
+  finished: false,
+  drawOfferPending: false, // я предложил, жду ответа
+  incomingOfferTimer: null,
+};
+let moveTimerInterval = null, matchTimerInterval = null;
+
+// ─── Игровая логика (зеркало серверной — для подсветки ходов на клиенте) ───
 function isKing(v) { return v === 3 || v === 4; }
-function isOwn(v, p) { return p === 1 ? (v===1||v===3) : (v===2||v===4); }
-function enemyVals(p) { return p === 1 ? [2,4] : [1,3]; }
+function isOwn(v, p) { return p === 1 ? (v === 1 || v === 3) : (v === 2 || v === 4); }
+function enemyVals(p) { return p === 1 ? [2, 4] : [1, 3]; }
 
 function hasCaptureFrom(b, x, y, p) {
   const piece = b[y][x];
   const enemies = enemyVals(p);
   if (!isKing(piece)) {
-    for (const dx of [-1,1]) for (const dy of [-1,1]) {
-      const mx=x+dx, my=y+dy, tx=x+dx*2, ty=y+dy*2;
-      if(ty>=0&&ty<8&&tx>=0&&tx<8 && enemies.includes(b[my]?.[mx]) && b[ty]?.[tx]===0) return true;
+    for (const dx of [-1, 1]) for (const dy of [-1, 1]) {
+      const mx = x + dx, my = y + dy, tx = x + dx * 2, ty = y + dy * 2;
+      if (ty >= 0 && ty < 8 && tx >= 0 && tx < 8 && enemies.includes(b[my]?.[mx]) && b[ty]?.[tx] === 0) return true;
     }
     return false;
   }
-  for (const [dx,dy] of [[1,1],[1,-1],[-1,1],[-1,-1]]) {
-    let cx=x+dx, cy=y+dy, found=false;
-    while(cx>=0&&cx<8&&cy>=0&&cy<8) {
-      const c=b[cy][cx];
-      if(c===0){if(found)return true;}
-      else if(enemies.includes(c)&&!found){found=true;}
+  for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+    let cx = x + dx, cy = y + dy, found = false;
+    while (cx >= 0 && cx < 8 && cy >= 0 && cy < 8) {
+      const c = b[cy][cx];
+      if (c === 0) { if (found) return true; }
+      else if (enemies.includes(c) && !found) { found = true; }
       else break;
-      cx+=dx; cy+=dy;
+      cx += dx; cy += dy;
     }
   }
   return false;
 }
 
 function hasAnyCapture(b, p) {
-  for(let y=0;y<8;y++) for(let x=0;x<8;x++)
-    if(isOwn(b[y][x],p) && hasCaptureFrom(b,x,y,p)) return true;
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++)
+    if (isOwn(b[y][x], p) && hasCaptureFrom(b, x, y, p)) return true;
   return false;
 }
 
 function getHints(x, y) {
-  if (!board[y] || !board[y][x]) return [];
-  const piece = board[y][x];
-  if (!isOwn(piece, myPlayerIndex)) return [];
-  if (forcedFrom && !(forcedFrom[0]===x && forcedFrom[1]===y)) return [];
+  const b = G.board;
+  if (!b[y] || !b[y][x]) return [];
+  const piece = b[y][x];
+  if (!isOwn(piece, G.myPlayerIndex)) return [];
+  if (G.forcedFrom && !(G.forcedFrom[0] === x && G.forcedFrom[1] === y)) return [];
 
   const moves = [];
-  const mustCapture = forcedFrom ? true : hasAnyCapture(board, myPlayerIndex);
-  const enemies = enemyVals(myPlayerIndex);
+  const mustCapture = G.forcedFrom ? true : hasAnyCapture(b, G.myPlayerIndex);
+  const enemies = enemyVals(G.myPlayerIndex);
 
   if (!isKing(piece)) {
-    const fwd = myPlayerIndex === 1 ? 1 : -1;
+    const fwd = G.myPlayerIndex === 1 ? 1 : -1;
     if (!mustCapture) {
-      for (const dx of [-1,1]) {
-        const tx=x+dx, ty=y+fwd;
-        if(ty>=0&&ty<8&&tx>=0&&tx<8&&board[ty]?.[tx]===0)
-          moves.push({tx,ty,isCapture:false});
+      for (const dx of [-1, 1]) {
+        const tx = x + dx, ty = y + fwd;
+        if (ty >= 0 && ty < 8 && tx >= 0 && tx < 8 && b[ty]?.[tx] === 0)
+          moves.push({ tx, ty, isCapture: false });
       }
     }
-    for (const dx of [-1,1]) for (const dy of [-1,1]) {
-      const mx=x+dx, my=y+dy, tx=x+dx*2, ty=y+dy*2;
-      if(ty>=0&&ty<8&&tx>=0&&tx<8 && enemies.includes(board[my]?.[mx]) && board[ty]?.[tx]===0)
-        moves.push({tx,ty,isCapture:true});
+    for (const dx of [-1, 1]) for (const dy of [-1, 1]) {
+      const mx = x + dx, my = y + dy, tx = x + dx * 2, ty = y + dy * 2;
+      if (ty >= 0 && ty < 8 && tx >= 0 && tx < 8 && enemies.includes(b[my]?.[mx]) && b[ty]?.[tx] === 0)
+        moves.push({ tx, ty, isCapture: true });
     }
   } else {
-    for (const [dx,dy] of [[1,1],[1,-1],[-1,1],[-1,-1]]) {
-      let cx=x+dx, cy=y+dy, capAt=null;
-      while(cx>=0&&cx<8&&cy>=0&&cy<8) {
-        const c=board[cy][cx];
-        if(c===0){
-          if(!mustCapture||capAt) moves.push({tx:cx,ty:cy,isCapture:!!capAt});
-        } else if(enemies.includes(c)&&!capAt){capAt=[cx,cy];}
+    for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      let cx = x + dx, cy = y + dy, capAt = null;
+      while (cx >= 0 && cx < 8 && cy >= 0 && cy < 8) {
+        const c = b[cy][cx];
+        if (c === 0) {
+          if (!mustCapture || capAt) moves.push({ tx: cx, ty: cy, isCapture: !!capAt });
+        } else if (enemies.includes(c) && !capAt) { capAt = [cx, cy]; }
         else break;
-        cx+=dx; cy+=dy;
+        cx += dx; cy += dy;
       }
     }
   }
   return moves;
 }
 
-// ─── BOARD RENDER ───
+// ─── Render доски ───
 function renderBoard() {
   const el = document.getElementById('board');
-  el.innerHTML = '';
+  if (!el || !G.board) return;
+  const flip = G.myPlayerIndex === 2; // player 2 видит доску перевёрнутой
+  let html = '';
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const y = flip ? (7 - row) : row;
+      const x = flip ? (7 - col) : col;
+      const isDark = (x + y) % 2 === 1;
+      const isSel = G.selected && G.selected[0] === x && G.selected[1] === y;
+      const hint = G.hints.find(h => h.tx === x && h.ty === y);
+      let cls = 'cell ' + (isDark ? 'dark' : 'light');
+      if (isDark) cls += ' clickable';
+      if (isSel) cls += ' sel';
+      else if (hint) cls += ' hint' + (hint.isCapture ? ' cap' : '');
 
-  for (let y=0; y<8; y++) {
-    for (let x=0; x<8; x++) {
-      const cell = document.createElement('div');
-      const isDark = (x+y)%2===1;
-      cell.className = 'cell ' + (isDark ? 'dark' : 'light');
-
-      const isSel = selected && selected[0]===x && selected[1]===y;
-      const hint = hints.find(h=>h.tx===x&&h.ty===y);
-
-      if (isSel) cell.classList.add('sel');
-      else if (hint) {
-        cell.classList.add('hint');
-        if (hint.isCapture) cell.classList.add('capture');
-      }
-
-      const v = board[y]?.[x];
+      let inner = '';
+      const v = G.board[y]?.[x];
       if (v && !hint) {
-        const p = document.createElement('div');
-        const owner = (v===1||v===3) ? 1 : 2;
-        p.className = 'piece p'+(owner===1?'1':'2') + (isKing(v)?' king':'');
-        cell.appendChild(p);
+        const mine = isOwn(v, G.myPlayerIndex);
+        inner = `<div class="piece ${mine ? 'me' : 'opp'}${isKing(v) ? ' king' : ''}"></div>`;
       }
-
-      if (isDark) cell.addEventListener('click', () => onCellClick(x, y));
-      el.appendChild(cell);
+      html += `<div class="${cls}" data-x="${x}" data-y="${y}">${inner}</div>`;
     }
   }
-
-  updateStatusBar();
-  updatePlayerCards();
-}
-
-function updatePlayerCards() {
-  document.getElementById('pcard1').className = 'pcard' + (currentPlayer===1?' myturn':'');
-  document.getElementById('pcard2').className = 'pcard' + (currentPlayer===2?' myturn':'');
-}
-
-function updateStatusBar() {
-  const bar = document.getElementById('status-bar');
-  if (gameOver) { bar.textContent = ''; return; }
-
-  if (!isMyTurn) {
-    bar.className = 'status-bar';
-    bar.textContent = 'Ожидаем ход соперника...';
-    return;
-  }
-  if (forcedFrom) {
-    bar.className = 'status-bar warn';
-    bar.textContent = 'Продолжайте взятие!';
-    return;
-  }
-  const mustCap = hasAnyCapture(board, myPlayerIndex);
-  if (mustCap) {
-    bar.className = 'status-bar warn';
-    bar.textContent = 'Взятие обязательно!';
-  } else {
-    bar.className = 'status-bar ok';
-    bar.textContent = 'Ваш ход';
-  }
+  el.innerHTML = html;
+  el.querySelectorAll('.cell.clickable').forEach(c => {
+    c.onclick = () => onCellClick(parseInt(c.dataset.x), parseInt(c.dataset.y));
+  });
 }
 
 function onCellClick(x, y) {
-  if (gameOver || !isMyTurn) return;
+  if (!G.active || G.finished) return;
+  const isMyTurn = G.currentPlayer === G.myPlayerIndex;
+  if (!isMyTurn) return;
 
-  const v = board[y]?.[x];
-
-  if (isOwn(v, myPlayerIndex) && (!forcedFrom || (forcedFrom[0]===x&&forcedFrom[1]===y))) {
-    selected = [x, y];
-    hints = getHints(x, y);
+  const v = G.board[y]?.[x];
+  if (isOwn(v, G.myPlayerIndex) && (!G.forcedFrom || (G.forcedFrom[0] === x && G.forcedFrom[1] === y))) {
+    G.selected = [x, y];
+    G.hints = getHints(x, y);
+    haptic('sel');
     renderBoard();
     return;
   }
-
-  if (selected) {
-    const hint = hints.find(h=>h.tx===x&&h.ty===y);
+  if (G.selected) {
+    const hint = G.hints.find(h => h.tx === x && h.ty === y);
     if (hint) {
-      sendMove(selected[0], selected[1], x, y);
-      selected = null;
-      hints = [];
-      isMyTurn = false;
+      sendMove(G.selected[0], G.selected[1], x, y);
+      G.selected = null;
+      G.hints = [];
+      haptic('medium');
       renderBoard();
       return;
     }
   }
-
-  selected = null;
-  hints = [];
+  G.selected = null;
+  G.hints = [];
   renderBoard();
 }
 
 function sendMove(fx, fy, tx, ty) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    toast('Нет соединения');
-    return;
+  wsSend({ type: 'move', move: { from: [fx, fy], to: [tx, ty] }, moveIndex: G.moveIndex });
+}
+
+// ─── Player cards (имя/статистика/таймер/точки) ───
+function renderPlayerCards() {
+  const winrate = (w, g) => g > 0 ? Math.round((w / g) * 100) : 0;
+  document.getElementById('oppAvatar').textContent = (G.opponentName[0] || '?').toUpperCase();
+  document.getElementById('oppName').textContent = G.opponentName || (S.lang === 'ru' ? 'Соперник' : 'Opponent');
+  document.getElementById('oppMeta').textContent = `${G.opponentWins} ${S.lang === 'ru' ? 'побед' : 'wins'} · ${winrate(G.opponentWins, G.opponentGames)}%`;
+  document.getElementById('meAvatar').textContent = (G.myName[0] || '?').toUpperCase();
+  document.getElementById('meName').innerHTML = `${G.myName || (S.lang === 'ru' ? 'Ты' : 'You')} <span class="myturn-tag" id="meTurnTag"></span>`;
+  document.getElementById('meMeta').textContent = `${G.myWins} ${S.lang === 'ru' ? 'побед' : 'wins'} · ${winrate(G.myWins, G.myGames)}%`;
+  document.getElementById('gBankVal').textContent = `${G.pot} GRAM`;
+
+  const dbg = document.getElementById('dbgLine');
+  if (dbg) dbg.textContent = `myIdx:${G.myPlayerIndex} cur:${G.currentPlayer} mv:${G.moveIndex} me:${G.myName} opp:${G.opponentName}`;
+
+  const isMyTurn = G.currentPlayer === G.myPlayerIndex;
+  const turnTag = document.getElementById('meTurnTag');
+  if (turnTag) turnTag.textContent = isMyTurn ? t('g_yourturn') : '';
+
+  // Захваченные фишки → точки у соперника (мои съеденные у него) и наоборот
+  let myCount = 0, oppCount = 0;
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    const v = G.board?.[y]?.[x];
+    if (!v) continue;
+    if (isOwn(v, G.myPlayerIndex)) myCount++; else oppCount++;
   }
-  ws.send(JSON.stringify({
-    type: 'move',
-    move: { from: [fx, fy], to: [tx, ty] },
-    moveIndex: currentMoveIndex
-  }));
+  const oppLost = 12 - oppCount; // сколько фишек соперника я съел
+  const myLost = 12 - myCount;   // сколько моих фишек съедено
+  document.getElementById('oppDots').innerHTML = Array(Math.max(0, oppLost)).fill('<div class="pcard-dot me"></div>').join('');
+  document.getElementById('meDots').innerHTML = Array(Math.max(0, myLost)).fill('<div class="pcard-dot opp"></div>').join('');
 }
 
-// ─── TIMERS ───
-function renderTimers() {
+function renderGameTimers() {
   const fmt = s => {
-    const m = Math.floor(Math.max(0,s)/60);
-    const sec = Math.max(0,s)%60;
-    return m+':'+(sec<10?'0':'')+sec;
+    const m = Math.floor(Math.max(0, s) / 60);
+    const sec = Math.max(0, s) % 60;
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
   };
-  const t1 = document.getElementById('timer1');
-  const t2 = document.getElementById('timer2');
-  t1.textContent = fmt(times[0]);
-  t2.textContent = fmt(times[1]);
-  t1.className = 'pcard-timer' + (times[0]<=10?' low':'');
-  t2.className = 'pcard-timer' + (times[1]<=10?' low':'');
+  const oppIdx = G.myPlayerIndex === 1 ? 2 : 1;
+  const oppTime = oppIdx === 1 ? G.whiteTime : G.blackTime;
+  const meTime = G.myPlayerIndex === 1 ? G.whiteTime : G.blackTime;
+
+  const oppEl = document.getElementById('oppTimer');
+  const meEl = document.getElementById('meTimer');
+  if (oppEl) {
+    oppEl.textContent = fmt(oppTime);
+    oppEl.className = 'pcard-timer-wrap' + (G.currentPlayer === oppIdx ? ' active' : '') + (oppTime <= 10 ? ' low' : '');
+  }
+  if (meEl) {
+    meEl.textContent = fmt(meTime);
+    meEl.className = 'pcard-timer-wrap' + (G.currentPlayer === G.myPlayerIndex ? ' active' : '') + (meTime <= 10 ? ' low' : '');
+  }
 }
 
-// Дедлайн текущего хода на клиенте (ms, синхронизируется с сервером)
-let moveDeadlineClient = 0;
-
-function startClientTimer() {
-  clearInterval(timerInterval);
-  // Устанавливаем дедлайн при старте/смене хода
-  moveDeadlineClient = Date.now() + (times[currentPlayer - 1] * 1000);
-  timerInterval = setInterval(() => {
-    if (gameOver) return;
-    const idx = currentPlayer - 1;
-    const remaining = Math.max(0, Math.ceil((moveDeadlineClient - Date.now()) / 1000));
-    times[idx] = remaining;
-    renderTimers();
-    // Если время вышло — показываем 0 и ждём game_over от сервера
-    // Визуально мигаем красным чтобы игрок понял
-    if (remaining === 0) {
-      const timerEl = document.getElementById('timer' + currentPlayer);
-      if (timerEl) timerEl.classList.add('low');
-    }
+function startMoveTimerLoop() {
+  clearInterval(moveTimerInterval);
+  G.moveDeadlineClient = Date.now() + (G.currentPlayer === 1 ? G.whiteTime : G.blackTime) * 1000;
+  moveTimerInterval = setInterval(() => {
+    if (G.finished) return;
+    const remaining = Math.max(0, Math.ceil((G.moveDeadlineClient - Date.now()) / 1000));
+    if (G.currentPlayer === 1) G.whiteTime = remaining; else G.blackTime = remaining;
+    renderGameTimers();
   }, 250);
 }
 
-// Вызывается при смене хода — синхронизирует дедлайн с сервером
-function resetMoveTimer(timeLeftSec) {
-  moveDeadlineClient = Date.now() + timeLeftSec * 1000;
+function resetMoveTimer(activeTime) {
+  G.moveDeadlineClient = Date.now() + activeTime * 1000;
 }
 
-// ─── GAME OVER ───
-function endGame(winnerId) {
-  gameOver = true;
-  // Чистим сессию ДО всего — чтобы авто-реконнект WS шёл в лобби, не в игру
-  mySessionId = null;
-  pendingMatchMsg = null;
-  sessionStorage.removeItem('activeGameId');
-  sessionStorage.removeItem('activeGameMsg');
-  clearInterval(timerInterval);
+function startMatchTimerLoop() {
+  clearInterval(matchTimerInterval);
+  const fmt = s => {
+    const m = Math.floor(Math.max(0, s) / 60);
+    const sec = Math.max(0, s) % 60;
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  };
+  matchTimerInterval = setInterval(() => {
+    if (G.finished || !G.matchDeadline) return;
+    const remaining = Math.max(0, Math.round((G.matchDeadline - Date.now()) / 1000));
+    const el = document.getElementById('gMatchTimerVal');
+    const wrap = document.getElementById('gMatchTimer');
+    if (el) el.textContent = fmt(remaining);
+    if (wrap) wrap.classList.toggle('low', remaining <= 120); // последние 2 мин — красным
+  }, 1000);
+}
 
-  const isWinner = winnerId === myPlayerId;
-  const isDraw = !winnerId;
+// ─── Запуск/обновление игры из game_start / reconnected ───
+function startGameFromMsg(msg) {
+  G.active = true;
+  G.finished = false;
+  G.myPlayerIndex = msg.playerIndex || 2;
+  G.board = msg.state.board;
+  G.currentPlayer = msg.state.currentPlayer;
+  G.forcedFrom = msg.state.forcedFrom || null;
+  G.moveIndex = msg.moveIndex || 0;
+  G.myName = msg.myName || (S.lang === 'ru' ? 'Ты' : 'You');
+  G.opponentName = msg.opponentName || (S.lang === 'ru' ? 'Соперник' : 'Opponent');
+  G.myWins = msg.myWins || 0; G.myGames = msg.myGames || 0;
+  G.opponentWins = msg.opponentWins || 0; G.opponentGames = msg.opponentGames || 0;
+  G.pot = msg.pot || 0;
+  G.myStake = msg.myStake || 0;
+  G.whiteTime = msg.whiteTime !== undefined ? msg.whiteTime : 60;
+  G.blackTime = msg.blackTime !== undefined ? msg.blackTime : 60;
+  G.matchDeadline = msg.matchDeadline || null;
+  G.matchTimeLimitMs = msg.matchTimeLimitMs || G.matchTimeLimitMs;
+  // Если matchDeadline не пришёл (бесплатные игры, race condition) — создаём из matchTimeLimitMs
+  if (!G.matchDeadline && G.matchTimeLimitMs) {
+    G.matchDeadline = Date.now() + G.matchTimeLimitMs;
+  }
+  G.selected = null;
+  G.hints = [];
 
-  // Считаем точно: берём реальный банк с сервера
-  const pot = myPot > 0 ? myPot : myStake * 2;
+  document.getElementById('app').classList.add('in-game');
+  showScreen('game');
+  renderBoard();
+  renderPlayerCards();
+  renderGameTimers();
+  startMoveTimerLoop();
+  startMatchTimerLoop();
+}
+
+function updateGameFromState(state, moveIndex) {
+  G.board = state.board;
+  G.currentPlayer = state.currentPlayer;
+  G.forcedFrom = state.forcedFrom || null;
+  if (moveIndex !== undefined) G.moveIndex = moveIndex;
+  G.selected = null;
+  G.hints = [];
+  renderBoard();
+  renderPlayerCards();
+}
+
+function handleGameOver(msg) {
+  // ── Cleanup ВСЕГДА выполняется первым — до PG_show или fallback модалки ──
+  G.finished = true;
+  G.active = false;
+  clearInterval(moveTimerInterval);
+  clearInterval(matchTimerInterval);
+  document.getElementById('app').classList.remove('in-game');
+  sessionStorage.removeItem('ck_gameId');
+
+  if (window.PG_show) { PG_show(msg); return; }
+
+  const myId = S.playerId;
+  const isWinner = msg.winner && msg.winner === myId;
+  const isDraw = !msg.winner;
+  const pot = msg.pot || G.pot || (G.myStake * 2);
   const fee = pot * 0.03;
   const prize = (pot - fee).toFixed(2);
-  const loss = myStake > 0 ? myStake.toFixed(2) : selectedStake.toFixed(2);
+  const loss = (msg.stake || G.myStake || 0).toFixed(2);
 
-  const iconWrap = document.getElementById('result-icon-wrap');
-  const iconI = document.getElementById('result-icon-i');
-  iconWrap.className = 'result-icon-wrap ' + (isDraw ? 'draw' : isWinner ? 'win' : 'lose');
-  iconI.className = 'ti ' + (isDraw ? 'ti-equal' : isWinner ? 'ti-trophy' : 'ti-x');
-  document.getElementById('result-title').textContent = isDraw ? 'Ничья' : isWinner ? 'Победа!' : 'Поражение';
-  document.getElementById('result-title').className = 'result-title ' + (isDraw?'draw':isWinner?'win':'lose');
-  // Динамический фон экрана результата
-  const resultScreen = document.getElementById('result');
-  resultScreen.className = 'screen ' + (isDraw ? '' : isWinner ? 'win-bg' : 'lose-bg');
+  const iconWrap = document.getElementById('goIconWrap');
+  const icon = document.getElementById('goIcon');
+  const title = document.getElementById('goTitle');
+  const amount = document.getElementById('goAmount');
+  const sub = document.getElementById('goSub');
 
-  const amountEl = document.getElementById('result-amount');
-  amountEl.style.cssText = ''; // сбрасываем inline стили
-  if (isWinner) {
-    amountEl.textContent = '+' + prize + ' GRAM';
-    amountEl.className = 'result-amount win';
-    document.getElementById('result-sub').textContent = 'Комиссия: 3% (' + fee.toFixed(2) + ' GRAM) · Банк: ' + pot + ' GRAM';
-  } else if (isDraw) {
-    amountEl.textContent = 'Возврат: +' + loss + ' GRAM';
-    amountEl.className = 'result-amount draw';
-    document.getElementById('result-sub').textContent = 'Ничья — ставки возвращены';
+  const kind = isDraw ? 'draw' : isWinner ? 'win' : 'lose';
+  iconWrap.className = 'go-icon-wrap ' + kind;
+  title.className = 'go-title ' + kind;
+  amount.className = 'go-amount ' + kind;
+
+  if (isDraw) {
+    icon.innerHTML = '<line x1="6" y1="10" x2="18" y2="10"/><line x1="6" y1="14" x2="18" y2="14"/>';
+    title.textContent = t('go_draw');
+    amount.textContent = `+${loss} GRAM`;
+    sub.textContent = t('go_sub_draw');
+  } else if (isWinner) {
+    icon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+    title.textContent = t('go_win');
+    amount.textContent = `+${prize} GRAM`;
+    sub.textContent = t('go_sub_win')(fee.toFixed(2));
   } else {
-    amountEl.textContent = '-' + loss + ' GRAM';
-    amountEl.className = 'result-amount lose';
-    document.getElementById('result-sub').textContent = 'Банк: ' + pot + ' GRAM'
+    icon.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
+    title.textContent = t('go_lose');
+    amount.textContent = `-${loss} GRAM`;
+    sub.textContent = msg.reason === 'match_timeout' ? t('go_reason_timeout')
+      : msg.reason === 'resign' ? (msg.resignedBy === myId ? t('go_reason_resign_me') : t('go_reason_resign'))
+      : msg.reason === 'disconnect' ? t('go_reason_disconnect')
+      : t('go_sub_lose');
   }
 
-  // Обновляем статистику с сервера
-  setTimeout(() => { init(); }, 1000);
-
-  // Показываем баланс кошелька на экране результата
-  const resultWallet = document.getElementById('result-wallet');
-  if (walletAddress) {
-    resultWallet.style.display = '';
-    document.getElementById('result-wallet-addr').textContent =
-      walletAddress.slice(0, 8) + '...' + walletAddress.slice(-4);
-    document.getElementById('result-wallet-bal').textContent = '...';
-    document.getElementById('result-wallet-cur').style.display = '';
-    document.getElementById('result-wallet-eye').textContent = 'скрыть';
-    // Обновляем баланс с небольшой задержкой — дать блокчейну время на выплату
-    setTimeout(() => {
-      fetchTonBalance(walletAddress).then(() => {
-        const bal = tonBalanceValue;
-        if (bal !== null) {
-          document.getElementById('result-wallet-bal').textContent = bal;
-          // Обновляем и в лобби
-          document.getElementById('ton-bal').textContent = bal;
-        }
-      });
-    }, 5000);
-  } else {
-    resultWallet.style.display = 'none';
+  // Если это я только что сдался/timeout — тоже корректно покажем (резерв для текста выше)
+  if (!isDraw && !isWinner && msg.reason === 'match_timeout' && msg.loserId === myId) {
+    sub.textContent = t('go_reason_timeout');
   }
 
-  showScreen('result');
+  showModal('modalGameOver');
+  // Обновляем баланс с сервера после выплаты
+  setTimeout(() => { login(); }, 1200);
 }
 
-function updateStats(data) {
-  // Stats block removed — history only
+function backToLobby() {
+  hideModal('modalGameOver');
+  G.active = false;
+  G.finished = true;
+  document.getElementById('app').classList.remove('in-game');
+  sessionStorage.removeItem('ck_gameId');
+  showScreen('lobby');
 }
 
-function toggleHistory() {
-  const list = document.getElementById('history-list');
-  const arrow = document.getElementById('history-arrow');
-  if (list.style.display === 'none') {
-    list.style.display = 'flex';
-    arrow.textContent = '▲';
-    loadHistory();
+// ─── Модалки (показ/скрытие) ───
+function showModal(id) { document.getElementById(id)?.classList.add('show'); }
+function hideModal(id) { document.getElementById(id)?.classList.remove('show'); }
+
+// ─── Ничья ───
+function openDrawModal() { haptic('light'); showModal('modalDraw'); }
+function confirmDrawOffer() {
+  hideModal('modalDraw');
+  wsSend({ type: 'draw_offer' });
+  G.drawOfferPending = true;
+  toast(t('toast_draw_sent'));
+}
+function showIncomingDrawOffer() {
+  haptic('medium');
+  showModal('modalDrawIncoming');
+  clearTimeout(G.incomingOfferTimer);
+  G.incomingOfferTimer = setTimeout(() => hideModal('modalDrawIncoming'), 30000);
+}
+function respondDraw(accept) {
+  hideModal('modalDrawIncoming');
+  clearTimeout(G.incomingOfferTimer);
+  wsSend({ type: 'draw_response', accept });
+}
+
+// ─── Сдаться ───
+function openResignModal() {
+  haptic('light');
+  const stakeTxt = (G.myStake || 0).toFixed(2);
+  document.getElementById('resignWarnText').innerHTML = t('rm_warn')(stakeTxt);
+  document.getElementById('resignLossRow').innerHTML = `${t('rm_r1')} <b class="danger">${stakeTxt} GRAM</b>`;
+  showModal('modalResign');
+}
+function confirmResign() {
+  hideModal('modalResign');
+  wsSend({ type: 'resign' });
+  haptic('heavy');
+}
+
+
+function renderCTA() {
+  const btn = document.getElementById('ctaBtn');
+  const label = document.getElementById('ctaText');
+  const sub = document.getElementById('ctaSub');
+  const isFree = S.stake === 'free';
+  const stake = isFree ? 0 : S.stake;
+
+  // Reset classes
+  btn.className = 'cta-btn';
+  btn.dataset.action = 'find';
+
+  if (!isFree && !S.walletConnected) {
+    btn.classList.add('cta-green');
+    btn.dataset.action = 'connect';
+    label.textContent = t('cta_conn');
+    // no shine on green
+    btn.querySelector('.cta-shine')?.remove();
+  } else if (!isFree && S.balance < stake) {
+    btn.classList.add('cta-gold');
+    btn.dataset.action = 'topup';
+    label.textContent = t('cta_topup');
+    btn.querySelector('.cta-shine')?.remove();
   } else {
-    list.style.display = 'none';
-    arrow.textContent = '▼';
-  }
-}
-
-async function loadHistory() {
-  if (!myPlayerId) return;
-  try {
-    const res = await fetch(HTTP_URL + '/history/' + myPlayerId, {
-      headers: {'ngrok-skip-browser-warning': 'true'}
-    });
-    const games = await res.json();
-    const list = document.getElementById('history-list');
-    const clearBtn = document.getElementById('clear-history-btn');
-    list.innerHTML = '';
-    if (!Array.isArray(games) || games.length === 0) {
-      list.innerHTML = '<div style="text-align:center;color:var(--tx3);font-size:13px;padding:16px">Вы ещё не завершили ни одной игры</div>';
-      clearBtn.style.display = 'none';
-      return;
+    btn.classList.add('cta-dark');
+    label.textContent = t('cta_find');
+    // ensure shine exists
+    if (!btn.querySelector('.cta-shine')) {
+      const shine = document.createElement('div');
+      shine.className = 'cta-shine';
+      btn.prepend(shine);
     }
-    clearBtn.style.display = 'block';
-    games.forEach(g => {
-      const isWin = g.winner === myPlayerId;
-      const isDraw = !g.winner;
-
-      const myIsWhite = (g.players || [])[0] === myPlayerId;
-
-      const oppName = myIsWhite
-        ? (g.black_username || g.players?.[1]?.replace('tg_', 'id:') || '?')
-        : (g.white_username || g.players?.[0]?.replace('tg_', 'id:') || '?');
-
-      const whiteStake = parseFloat(g.white_stake || 0);
-      const blackStake = parseFloat(g.black_stake || 0);
-      const pot = whiteStake + blackStake;
-      const myStake = myIsWhite ? whiteStake : blackStake;
-      const payout = (pot * 0.97).toFixed(2);
-
-      const resultText = isDraw ? '= Ничья' : isWin ? '+' + payout + ' GRAM' : '-' + myStake + ' GRAM';
-      const resultClass = isDraw ? 'hi-draw' : isWin ? 'hi-win' : 'hi-lose';
-
-      // Дата
-      let dateStr = '';
-      if (g.created_at) {
-        const d = new Date(g.created_at);
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const hh = String(d.getHours()).padStart(2, '0');
-        const min = String(d.getMinutes()).padStart(2, '0');
-        dateStr = dd + '.' + mm + ' ' + hh + ':' + min;
-      }
-
-      const div = document.createElement('div');
-      div.className = 'history-item';
-      div.innerHTML = `<div><div style="font-size:13px;font-weight:500">vs ${oppName}</div><div class="hi-vs">Банк: ${pot > 0 ? pot + ' GRAM' : '—'}</div><div class="hi-date">${dateStr}</div></div><div class="${resultClass}">${resultText}</div>`;
-      list.appendChild(div);
-    });
-  } catch(e) {
-    console.error('History load error:', e);
-    document.getElementById('history-section').style.display = 'none';
   }
-}
 
-async function clearHistory() {
-  if (!myPlayerId) return;
-  if (!confirm('Очистить всю историю игр?')) return;
-  try {
-    await fetch(HTTP_URL + '/history/' + myPlayerId, {
-      method: 'DELETE',
-      headers: {'ngrok-skip-browser-warning': 'true'}
-    });
-    document.getElementById('history-list').innerHTML = '<div style="text-align:center;color:var(--tx3);font-size:13px;padding:16px">Вы ещё не завершили ни одной игры</div>';
-    document.getElementById('clear-history-btn').style.display = 'none';
-  } catch(e) {
-    console.error('Clear history error:', e);
-  }
-}
-
-// ─── TON CONNECT ───
-// Манифест описывает приложение для кошелька (Tonkeeper покажет его пользователю)
-const TON_MANIFEST_URL = 'https://muzz11cc.github.io/chekers/tonconnect-manifest.json';
-
-let tonConnectUI = null;
-let walletAddress = null;
-
-function initTonConnect() {
-  try {
-    tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: TON_MANIFEST_URL,
-      // Не рендерим встроенную кнопку — используем свою
-      buttonRootId: null,
-    });
-
-    // Слушаем изменения статуса кошелька
-    tonConnectUI.onStatusChange(wallet => {
-      if (wallet) {
-        walletAddress = wallet.account.address;
-        onWalletConnected(wallet);
-      } else {
-        walletAddress = null;
-        onWalletDisconnected();
-      }
-    });
-  } catch(e) {
-    console.error('TON Connect init error:', e);
-  }
-}
-
-let tonBalanceVisible = false;
-let tonBalanceValue = null;
-
-function toggleTonBalance() {
-  tonBalanceVisible = !tonBalanceVisible;
-  const balEl = document.getElementById('ton-bal');
-  const curEl = document.getElementById('ton-bal-cur');
-  const iconEl = document.getElementById('ton-eye-icon');
-  if (tonBalanceVisible) {
-    balEl.textContent = tonBalanceValue !== null ? tonBalanceValue : '...';
-    curEl.style.display = '';
-    iconEl.textContent = 'скрыть';
-    if (tonBalanceValue === null && walletAddress) fetchTonBalance(walletAddress);
+  if (isFree) {
+    sub.textContent = t('sub_free');
   } else {
-    balEl.textContent = '—';
-    curEl.style.display = 'none';
-    iconEl.textContent = 'показать';
+    sub.innerHTML = subPaid(stake, stake * 2);
   }
 }
 
-async function fetchTonBalance(address) {
-  try {
-    const res = await fetch(`https://toncenter.com/api/v2/getAddressBalance?address=${encodeURIComponent(address)}`);
-    const data = await res.json();
-    if (data.ok) {
-      tonBalanceValue = (parseInt(data.result) / 1e9).toFixed(2);
-      // Обновляем в лобби если видимый
-      if (tonBalanceVisible) {
-        document.getElementById('ton-bal').textContent = tonBalanceValue;
-      }
-    }
-  } catch(e) {
-    console.error('Balance fetch error:', e);
-  }
+// ─── Actions ───
+async function connectWallet() {
+  haptic('light');
+  toast(t('toast_conn'));
+  if (!tonUI) { toast(t('toast_err')); return; }
+  try { await tonUI.openModal(); } catch(e) { toast(t('toast_err')); }
 }
 
-let resultBalanceVisible = true;
-function toggleResultBalance() {
-  resultBalanceVisible = !resultBalanceVisible;
-  const balEl = document.getElementById('result-wallet-bal');
-  const curEl = document.getElementById('result-wallet-cur');
-  const eyeEl = document.getElementById('result-wallet-eye');
-  if (resultBalanceVisible) {
-    balEl.textContent = tonBalanceValue !== null ? tonBalanceValue : '...';
-    curEl.style.display = '';
-    eyeEl.textContent = 'скрыть';
-  } else {
-    balEl.textContent = '—';
-    curEl.style.display = 'none';
-    eyeEl.textContent = 'показать';
-  }
+function doTopup() {
+  haptic('light');
+  toast(t('toast_topup'));
 }
 
-function onWalletConnected(wallet) {
-  const rawAddr = wallet.account.address;
-  // TON Connect возвращает raw адрес (0:abc...), конвертируем в friendly (UQ...)
-  const friendlyAddr = wallet.account.address;
-  walletAddress = friendlyAddr;
-
-  const short = friendlyAddr.slice(0, 8) + '...' + friendlyAddr.slice(-4);
-  document.getElementById('ton-addr').textContent = short;
-  // Сразу показываем баланс (загружаем автоматически)
-  tonBalanceVisible = true;
-  tonBalanceValue = null;
-  document.getElementById('ton-bal').textContent = '...';
-  document.getElementById('ton-bal-cur').style.display = '';
-  document.getElementById('ton-eye-icon').textContent = 'скрыть';
-  document.getElementById('ton-card').classList.add('visible');
-  document.getElementById('wallet-connect-row').style.display = 'none';
-  // Грузим баланс сразу
-  fetchTonBalance(friendlyAddr);
-
-  toast('Кошелёк подключён');
-
-  // Сохраняем адрес на сервере — только если токен уже получен
-  // playerId берётся сервером из токена, не из body
-  if (myToken) {
-    fetch(HTTP_URL + '/ton-address', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + myToken,
-        'ngrok-skip-browser-warning': 'true',
-      },
-      body: JSON.stringify({ tonAddress: friendlyAddr }),
-    })
-    .then(r => r.json())
-    .then(d => console.log('[TON] Address saved:', d))
-    .catch(e => console.error('[TON] Address save error:', e));
-  } else {
-    console.warn('[TON] Token not ready — address not saved yet');
-  }
+function onCTA() {
+  const action = document.getElementById('ctaBtn').dataset.action;
+  if (action === 'connect') return connectWallet();
+  if (action === 'topup') return doTopup();
+  MM_start();
 }
 
-function onWalletDisconnected() {
-  document.getElementById('ton-card').classList.remove('visible');
-  document.getElementById('wallet-connect-row').style.display = '';
-  document.getElementById('ton-addr').textContent = '—';
-  document.getElementById('ton-bal').textContent = '—';
-  document.getElementById('ton-bal-cur').style.display = 'none';
-  document.getElementById('ton-eye-icon').textContent = 'показать';
-  tonBalanceVisible = false;
-  tonBalanceValue = null;
-  walletAddress = null;
+let searchWatchdog = null;
+
+function startSearch() {
+  haptic('medium');
+  if (!S.token) { toast('Подключение...'); return; }
+  S.searching = true;
+  showScreen('mm');
+  const stake = S.stake === 'free' ? 0 : S.stake;
+  const pill = document.getElementById('mmStakePill');
+  if (pill) pill.textContent = S.stake === 'free' ? 'FREE' : `${stake} GRAM`;
+  wsSend({ type: 'find_match', stake });
+  toast(t('toast_search'));
+  armSearchWatchdog();
 }
 
-async function onConnectWallet() {
-  if (!tonConnectUI) {
-    toast('TON Connect не инициализирован');
+// Если за 18 секунд так и не пришёл match_found/game_ready_check/game_start —
+// сообщение могло потеряться в сети без явного обрыва WS-соединения.
+// Форсируем переподключение: сервер при новом коннекте сам найдёт нашу
+// активную/ожидающую сессию по playerId, даже если мы не знаем свой gameId.
+function armSearchWatchdog() {
+  clearSearchWatchdog();
+  searchWatchdog = setTimeout(() => {
+    if (!S.searching) return;
+    console.warn('[WATCHDOG] stuck in search — forcing WS reconnect');
+    try { ws?.close(); } catch(e) {}
+  }, 18000);
+}
+function clearSearchWatchdog() {
+  if (searchWatchdog) { clearTimeout(searchWatchdog); searchWatchdog = null; }
+}
+
+function cancelSearch() {
+  haptic('light');
+  wsSend({ type: 'cancel_search' });
+  S.searching = false;
+  clearSearchWatchdog();
+  showScreen('lobby');
+  toast(t('toast_cancel'));
+}
+
+// ─── Screen Router ───
+function showScreen(name) {
+  document.querySelectorAll('.scr').forEach(s => s.classList.remove('act'));
+  const el = document.getElementById('scr-' + name);
+  if (el) el.classList.add('act');
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('on', b.dataset.screen === name)
+  );
+  el?.scrollTo(0, 0);
+}
+
+// ─── Toast ───
+let toastTimer;
+function toast(msg, dur) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), dur || 2200);
+}
+
+// ─── WebSocket ───
+function connectWS(onOpen) {
+  if (!S.token) return;
+  if (ws && ws.readyState === WebSocket.OPEN) { onOpen?.(); return; }
+  const gameId = sessionStorage.getItem('ck_gameId');
+  const url = WS_URL + '?token=' + S.token + (gameId ? '&gameId=' + gameId : '');
+  ws = new WebSocket(url);
+  ws.onopen = () => { onOpen?.(); };
+  ws.onmessage = e => { try { handleWS(JSON.parse(e.data)); } catch(err) {} };
+  ws.onclose = () => { setTimeout(() => { if (S.token) connectWS(); }, 3000); };
+  ws.onerror = () => {};
+}
+
+function wsSend(msg) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    connectWS(() => ws.send(JSON.stringify(msg)));
     return;
   }
-  try {
-    await tonConnectUI.openModal();
-  } catch(e) {
-    console.error('Connect error:', e);
-    toast('Ошибка подключения кошелька');
-  }
+  ws.send(JSON.stringify(msg));
 }
 
-async function disconnectWallet() {
-  if (!tonConnectUI) return;
-  try {
-    await tonConnectUI.disconnect();
-  } catch(e) {
-    console.error('Disconnect error:', e);
+function handleWS(msg) {
+  if (msg.type === 'welcome' && msg.rooms) {
+    updateOnline(msg.rooms);
+    // Реконнект (например, после watchdog) застал нас всё ещё в поиске,
+    // но сервер не нашёл активной сессии — значит нас выкинуло из очереди
+    // matchmaking при разрыве соединения. Переотправляем find_match.
+    if (S.searching) {
+      const stake = S.stake === 'free' ? 0 : S.stake;
+      wsSend({ type: 'find_match', stake });
+      armSearchWatchdog();
+    }
   }
+  if (msg.type === 'room_counts') updateOnline(msg.rooms);
+  if (msg.type === 'match_found') {
+    sessionStorage.setItem('ck_gameId', msg.sessionId);
+  }
+  if (msg.type === 'game_ready_check') {
+    wsSend({ type: 'player_ready', sessionId: msg.sessionId });
+  }
+  if (msg.type === 'game_start') {
+    S.searching = false;
+    clearSearchWatchdog();
+    G.finished = false;  // ← принудительный сброс перед новой игрой
+    startGameFromMsg(msg);
+  }
+  if (msg.type === 'reconnected') {
+    S.searching = false;
+    clearSearchWatchdog();
+    G.finished = false;  // ← принудительный сброс перед реконнектом
+    if (msg.state) startGameFromMsg(msg);
+  }
+  if (msg.type === 'state_update') {
+    updateGameFromState(msg.state, msg.moveIndex);
+  }
+  if (msg.type === 'timer_update') {
+    if (msg.activePlayer && msg.activePlayer !== G.currentPlayer) {
+      G.currentPlayer = msg.activePlayer;
+      renderPlayerCards();
+    }
+    if (msg.whiteTime !== undefined) G.whiteTime = msg.whiteTime;
+    if (msg.blackTime !== undefined) G.blackTime = msg.blackTime;
+    const activeTime = msg.activePlayer === 1 ? msg.whiteTime : msg.blackTime;
+    resetMoveTimer(activeTime);
+    renderGameTimers();
+  }
+  if (msg.type === 'game_over') {
+    handleGameOver(msg);
+  }
+  if (msg.type === 'draw_offered') {
+    if (msg.by !== S.playerId) showIncomingDrawOffer();
+  }
+  if (msg.type === 'draw_declined') {
+    G.drawOfferPending = false;
+    if (msg.by !== S.playerId) toast(t('toast_draw_declined')); // показываем только тому, кто предлагал
+  }
+  if (msg.type === 'draw_expired') {
+    G.drawOfferPending = false;
+    hideModal('modalDrawIncoming');
+    toast(t('toast_draw_expired'));
+  }
+  if (msg.type === 'search_cancelled') {
+    S.searching = false;
+    clearSearchWatchdog();
+    showScreen('lobby');
+  }
+  if (msg.type === 'hold_failed') {
+    S.searching = false;
+    clearSearchWatchdog();
+    showScreen('lobby');
+    toast('Недостаточно средств');
+  }
+  if (msg.type === 'error') {
+    if (msg.code === 'TOKEN_EXPIRED') { S.token = null; login(); }
+    else toast('⚠ ' + msg.message);
+  }
+  if (window.MM_handleWS) MM_handleWS(msg);
 }
 
-function rematch() {
-  gameOver = true;
-  clearInterval(timerInterval);
-  const stake = myStake > 0 ? myStake : selectedStake;
-  showScreen('searching');
-  document.getElementById('search-stake').textContent = stake > 0 ? stake + ' GRAM' : 'Free';
+function updateOnline(rooms) {
+  if (!rooms) return;
+  let n = 0;
+  for (const k in rooms) n += rooms[k] || 0;
+  S.online = n;
+  const el = document.getElementById('onlineNum');
+  if (el) el.textContent = n || 0;
+}
 
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    connectWS(() => {
-      ws.send(JSON.stringify({ type: 'find_match', stake: stake }));
+// ─── TonConnect ───
+function initTonConnect() {
+  try {
+    tonUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: TON_MANIFEST,
+      buttonRootId: null,
+      actionsConfiguration: { twaReturnUrl: 'https://t.me/chekersgrambot' }
     });
-  } else {
-    ws.send(JSON.stringify({ type: 'find_match', stake: stake }));
-  }
+    tonUI.onStatusChange(wallet => {
+      if (wallet) {
+        S.walletAddr = wallet.account.address;
+        S.walletConnected = true;
+        toast(t('toast_wallet'));
+        renderBalance();
+        renderCTA();
+        // Save address to backend
+        if (S.token) {
+          fetch(HTTP_URL + '/ton-address', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.token },
+            body: JSON.stringify({ tonAddress: S.walletAddr })
+          }).catch(() => {});
+        }
+        fetchWalletBalance(S.walletAddr);
+      } else {
+        S.walletAddr = null;
+        S.walletConnected = false;
+        S.balance = 0;
+        renderBalance();
+        renderCTA();
+      }
+    });
+  } catch(e) { console.warn('[TON]', e); }
 }
 
-initTonConnect();
-// Проверяем есть ли активная игра (при обновлении страницы)
-const _savedGameId = sessionStorage.getItem('activeGameId');
-if (_savedGameId) {
-  mySessionId = _savedGameId;
+async function fetchWalletBalance(addr) {
+  try {
+    const r = await fetch('https://toncenter.com/api/v2/getAddressBalance?address=' + encodeURIComponent(addr));
+    const d = await r.json();
+    if (d.ok) {
+      S.balance = parseInt(d.result) / 1e9;
+      renderBalance();
+      renderCTA();
+    }
+  } catch(e) {}
 }
-init();
-renderOpenBets();
-updatePlayBtn();
 
+// ─── Login ───
+async function login() {
+  try {
+    const initData = tg?.initData || '';
+    const r = await fetch(HTTP_URL + '/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      body: JSON.stringify({ initData })
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    S.playerId = d.id;
+    S.token = d.token;
+    S.balance = d.balance || 0;
+    S.walletConnected = !!d.tonAddress;
+    if (d.tonAddress) S.walletAddr = d.tonAddress;
+    renderBalance();
+    renderCTA();
+    connectWS();
+    // Poll rooms every 5s
+    setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN && !S.searching) {
+        ws.send(JSON.stringify({ type: 'get_rooms' }));
+      }
+    }, 5000);
+  } catch(e) { console.warn('[LOGIN]', e); }
+}
+
+// ─── Boot ───
+function boot() {
+  // Lang toggle
+  document.querySelectorAll('.lang-sw span').forEach(b => {
+    b.onclick = () => {
+      S.lang = b.dataset.lang;
+      localStorage.setItem('ck_lang', S.lang);
+      haptic('sel');
+      applyLang();
+    };
+  });
+
+  // Accordion
+  document.getElementById('howtoHead').onclick = () => {
+    document.getElementById('howto').classList.toggle('open');
+    haptic('light');
+  };
+
+  // CTA
+  document.getElementById('ctaBtn').onclick = onCTA;
+
+  // Tabbar
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.onclick = () => {
+      if ((S.searching || G.active) && b.dataset.screen !== 'mm') return;
+      haptic('sel');
+      showScreen(b.dataset.screen);
+    };
+  });
+
+  // Cancel search
+  document.getElementById('mmCancel').onclick = cancelSearch;
+
+  // Game action buttons
+  document.getElementById('drawBtn').onclick = openDrawModal;
+  document.getElementById('resignBtn').onclick = openResignModal;
+  document.getElementById('drawCancelBtn').onclick = () => hideModal('modalDraw');
+  document.getElementById('drawConfirmBtn').onclick = confirmDrawOffer;
+  document.getElementById('diAcceptBtn').onclick = () => respondDraw(true);
+  document.getElementById('diDeclineBtn').onclick = () => respondDraw(false);
+  document.getElementById('resignCancelBtn').onclick = () => hideModal('modalResign');
+  document.getElementById('resignConfirmBtn').onclick = confirmResign;
+  document.getElementById('goLobbyBtn').onclick = backToLobby;
+
+  // Price
+  fetchPrice();
+  setInterval(fetchPrice, 5 * 60 * 1000);
+
+  // Initial render
+  renderStakes();
+  applyLang();
+
+  // TonConnect
+  initTonConnect();
+
+  // Login
+  login();
+}
+
+document.addEventListener('DOMContentLoaded', boot);
 </script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.6.0/tabler-icons.min.css">
+<script src="matchmaking.js"></script>
+<script src="postgame.js"></script>
 </body>
 </html>
